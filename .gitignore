@@ -1,0 +1,17 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Dataset (Huge files - DO NOT UPLOAD)
+data/
+*.zip
+*.rar
+
+# Model weights (Large files)
+*.h5
+*.pth
+*.pt
+models/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
