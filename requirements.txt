@@ -1,0 +1,23 @@
+# --- Core Framework ---
+tensorflow<2.11
+numpy<2.0.0
+
+# --- Data Manipulation & Plotting ---
+pandas
+matplotlib
+scikit-learn
+seaborn
+
+# --- Image Handling (Week 2 Requirement) ---
+pillow
+opencv-python
+
+# --- Medical Specifics ---
+pydicom
+
+# --- Advanced & Bonus ---
+albumentations
+wandb
+streamlit
+jupyter
+notebook
