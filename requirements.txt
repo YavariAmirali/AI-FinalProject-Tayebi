@@ -1,14 +1,16 @@
+# Core Framework (GPU Compatible)
 tensorflow<2.11
 numpy<2.0.0
+protobuf==3.19.6
+
+# Data Processing & Visualization
 pandas
 matplotlib
 scikit-learn
-seaborn
-pillow
-opencv-python
-pydicom
-albumentations
-streamlit
-wandb
+opencv-python-headless<4.10
+
+# Tools & UI
 jupyter
-notebook
+albumentations
+wandb
+streamlit==1.22.0
