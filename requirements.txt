@@ -7,8 +7,9 @@ protobuf==3.19.6
 pandas
 matplotlib
 scikit-learn
+seaborn
 opencv-python-headless<4.10
-pydicom==3.0.1
+pydicom==2.4.4
 
 # Tools & UI
 jupyter
