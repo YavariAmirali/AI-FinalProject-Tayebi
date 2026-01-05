@@ -1,6 +1,6 @@
 import tensorflow as tf
 import os
-from tensorflow.keras.callbacks import ModelCheckpoint
+from preprocessing import preprocess_image
 
 try:
     from model import build_baseline_model
@@ -19,13 +19,12 @@ IMG_HEIGHT = 224
 IMG_WIDTH = 224
 BATCH_SIZE = 32
 EPOCHS = 2 
-DATA_DIR = "dataset/raw" 
+DATA_DIR = "data/train"
 MODEL_SAVE_PATH = "models/baseline_model.h5"
 
 def main():
     print("Starting Smoke Test Pipeline...")
 
-    # 1. چک کردن GPU
     if tf.config.list_physical_devices('GPU'):
         print("GPU detected.")
     else:
