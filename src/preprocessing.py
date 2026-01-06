@@ -1,19 +1,13 @@
-import cv2
-import numpy as np
+import tensorflow as tf
 
-def preprocess_image(image_path, target_size=(224, 224)):
-    try:
-        img = cv2.imread(image_path)
-        
-        if img is None:
-            raise FileNotFoundError(f"Image not found at {image_path}")
-            
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, target_size)
-        img = img.astype('float32') / 255.0
-        
-        return img
-        
-    except Exception as e:
-        print(f"Error processing image: {e}")
-        return None
+
+def tf_preprocess_image(image, label):
+
+    # 1. Ensure image is float32 (Required for neural networks)
+    image = tf.cast(image, tf.float32)
+
+    # 2. Normalize pixel values to be between 0 and 1
+    image = image / 255.0
+
+    # Note: Resizing is already handled by image_dataset_from_directory in train.py
+    return image, label
