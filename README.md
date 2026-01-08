@@ -94,6 +94,20 @@ python src/train.py
 
 [![The Essential Main Ideas of Neural Networks](https://img.youtube.com/vi/CqOfi41LfDw/0.jpg)](https://www.youtube.com/watch?v=CqOfi41LfDw)
 
+## 🔗 مطالعات بیشتر و فرصت‌های یادگیری (Further Reading)
+
+برای کسانی که علاقه‌مند هستند این پروژه را فراتر از سطح فعلی ادامه دهند، منابع زیر پیشنهاد می‌شود:
+
+### 📄 مقالات مرتبط
+* **تشخیص ذات‌الریه با یادگیری ماشین:** مطالعه این مقاله که دقیقاً روی همین موضوع کار کرده، برای درک عمیق‌تر نتایج علمی پیشنهاد می‌شود:
+  > [Pneumonia Disease Detection Using Chest X-Rays and Machine Learning (MDPI)](https://www.mdpi.com/1999-4893/18/2/82)
+
+### 🎓 مسیر آکادمیک
+* **کارشناسی ارشد هوش مصنوعی:** اگر به مباحث این پروژه علاقه پیدا کردید و قصد ادامه تحصیل حرفه‌ای در این حوزه را دارید، می‌توانید دوره‌های تخصصی مثل دوره زیر را بررسی کنید:
+  > [Master of Science in Artificial Intelligence (EAIM)](https://eaim.edu.sg/master-of-science-in-artificial-intelligence/?utm_campaign=UOW%20%7C%20All&utm_source=Google&utm_medium=cpc&utm_content=msc-ai&gad_source=1&gad_campaignid=21837573069&gclid=Cj0KCQiAyP3KBhD9ARIsAAJLnnaEmQclrf-3rHN4akkf-nYlIF_bHcMQg680RxSQuHG0-zvKKJSULwEaApojEALw_wcB)
+
+
+
 
 
 ​<div align="center">
