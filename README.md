@@ -1,1 +1,115 @@
-پروژه تشخیص بیماری ذات الریه با X-Ray
+# 🫁 تشخیص ذات‌الریه با اشعه ایکس (Pneumonia Detection)
+
+![Python](https://img.shields.io/badge/Python-3.9-blue.svg)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)
+![Status](https://img.shields.io/badge/Status-Training_Phase-green.svg)
+
+در این پروژه، ما یک سیستم **بینایی ماشین (Computer Vision)** توسعه داده‌ایم که قادر است با دریافت تصاویر رادیولوژی قفسه سینه (Chest X-Ray)، بیماران مبتلا به ذات‌الریه را از افراد سالم تشخیص دهد.
+
+---
+
+## 🌟 ویژگی‌های کلیدی پیاده‌سازی (Key Features)
+
+ما در این پروژه قابلیت‌های فنی زیر را پیاده‌سازی کرده‌ایم:
+
+* **پایپ‌لاین داده (Data Pipeline):**
+    * ساختار داده‌ای تفکیک شده (Train/Test/Val) برای ارزیابی دقیق مدل.
+    * لود کردن داده‌ها به صورت دسته‌ای (Batch Loading) برای مدیریت حافظه RAM.
+    * نرمال‌سازی خودکار تصاویر (Rescaling) در فایل [src/preprocessing.py](src/preprocessing.py).
+
+* **معماری مدل (Model Architecture):**
+    * طراحی شبکه CNN اختصاصی در فایل [src/model.py](src/model.py).
+    * استفاده از لایه‌های `Conv2D` و `MaxPooling` برای استخراج ویژگی‌ها.
+
+* **عملیات و اجرا (DevOps & Training):**
+    * اسکریپت هوشمند [src/train.py](src/train.py) با قابلیت تشخیص خودکار GPU.
+    * مدیریت وابستگی‌ها با نسخه‌های پایدار (Stable Versions).
+    * ذخیره‌سازی مدل نهایی با فرمت استاندارد `.h5`.
+
+---
+
+## 📂 ساختار فایل‌ها (File Structure)
+
+```text
+AI-FinalProject-Tayebi/
+├── data/ # داده‌های تفکیک شده (طبق استاندارد Kaggle)
+│ ├── train/ # داده‌های آموزش
+│ │ ├── NORMAL/
+│ │ └── PNEUMONIA/
+│ ├── test/ # داده‌های تست نهایی
+│ │ ├── NORMAL/
+│ │ └── PNEUMONIA/
+│ └── val/ # داده‌های اعتبارسنجی حین آموزش
+│ ├── NORMAL/
+│ └── PNEUMONIA/
+├── models/ # محل ذخیره فایل‌های .h5 نهایی
+├── src/ # سورس کدها
+│ ├── model.py # معماری شبکه
+│ ├── preprocessing.py # توابع پردازش
+│ └── train.py # اسکریپت آموزش
+├── requirements.txt # لیست دقیق وابستگی‌ها و نسخه‌ها
+└── README.md # مستندات پروژه
+
+```
+
+## 🚀 راهنمای نصب و اجرا
+
+برای اجرای پروژه روی سیستم خودتان، دستورات زیر را در ترمینال (Terminal) وارد کنید:
+
+### ۱. نصب پیش‌نیازها
+ابتدا تمام کتابخانه‌های لازم را با دستور زیر نصب کنید (لیست دقیق نسخه‌ها در [requirements.txt](requirements.txt) موجود است):
+
+```bash
+pip install -r requirements.txt
+```
+
+### ​۲. آماده‌سازی دیتاست
+​تصاویر دیتاست باید در پوشه data قرار گیرند. ساختار پوشه‌ها باید دقیقاً شامل train، test و val باشد و هر کدام دارای دو زیرپوشه NORMAL و PNEUMONIA باشند.
+### ​۳. اجرای آموزش مدل
+​برای شروع عملیات یادگیری، دستور زیر را اجرا کنید:
+
+```bash
+python src/train.py
+```
+پس از اتمام، مدل نهایی در پوشه models/ ذخیره می شود.
+
+### تکنولوژی‌های استفاده شده
+​Language: Python 3.9
+
+​Core: TensorFlow < 2.11, NumPy < 2.0
+
+​Data: Pandas, Matplotlib, OpenCV
+
+​Tools: Jupyter, WandB, Streamlit
+
+## 📚 منابع و آموزش‌های تکمیلی
+
+### ۱. آموزش مفهومی CNN (مرتبط با پروژه)
+برای درک عمیق‌تر نحوه کار شبکه‌های کانولوشنی که در این پروژه استفاده کردیم، این ویدیوی عالی را ببینید:
+
+[![Neural Networks Part 8: Image Classification with CNNs](https://img.youtube.com/vi/HGwBXDKFk9I/0.jpg)](https://www.youtube.com/watch?v=HGwBXDKFk9I)
+
+### ۲. مبانی شبکه‌های عصبی (پیش‌نیاز)
+اگر می‌خواهید بدانید دقیقاً داخل "جعبه سیاه" مدل چه می‌گذرد و وزن‌ها چطور آپدیت می‌شوند، این ویدیو بهترین شروع است:
+
+[![The Essential Main Ideas of Neural Networks](https://img.youtube.com/vi/CqOfi41LfDw/0.jpg)](https://www.youtube.com/watch?v=CqOfi41LfDw)
+
+## 🔗 مطالعات بیشتر و فرصت‌های یادگیری (Further Reading)
+
+برای کسانی که علاقه‌مند هستند این پروژه را فراتر از سطح فعلی ادامه دهند، منابع زیر پیشنهاد می‌شود:
+
+### 📄 مقالات مرتبط
+* **تشخیص ذات‌الریه با یادگیری ماشین:** مطالعه این مقاله که دقیقاً روی همین موضوع کار کرده، برای درک عمیق‌تر نتایج علمی پیشنهاد می‌شود:
+  > [Pneumonia Disease Detection Using Chest X-Rays and Machine Learning (MDPI)](https://www.mdpi.com/1999-4893/18/2/82)
+
+### 🎓 مسیر آکادمیک
+* **کارشناسی ارشد هوش مصنوعی:** اگر به مباحث این پروژه علاقه پیدا کردید و قصد ادامه تحصیل حرفه‌ای در این حوزه را دارید، می‌توانید دوره‌های تخصصی مثل دوره زیر را بررسی کنید:
+  > [Master of Science in Artificial Intelligence (EAIM)](https://eaim.edu.sg/master-of-science-in-artificial-intelligence/?utm_campaign=UOW%20%7C%20All&utm_source=Google&utm_medium=cpc&utm_content=msc-ai&gad_source=1&gad_campaignid=21837573069&gclid=Cj0KCQiAyP3KBhD9ARIsAAJLnnaEmQclrf-3rHN4akkf-nYlIF_bHcMQg680RxSQuHG0-zvKKJSULwEaApojEALw_wcB)
+
+
+
+
+
+​<div align="center">
+### ​توسعه داده شده توسط تیم هوش مصنوعی
+​</div>
