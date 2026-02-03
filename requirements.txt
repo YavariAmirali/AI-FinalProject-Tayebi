@@ -1,0 +1,18 @@
+# Core Framework (GPU Compatible)
+tensorflow<2.11
+numpy<2.0.0
+protobuf==3.19.6
+
+# Data Processing & Visualization
+pandas
+matplotlib
+scikit-learn
+seaborn
+opencv-python-headless<4.10
+pydicom==2.4.4
+
+# Tools & UI
+jupyter
+albumentations
+wandb
+streamlit==1.22.0
