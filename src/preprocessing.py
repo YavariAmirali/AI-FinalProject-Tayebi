@@ -1,13 +1,18 @@
 import tensorflow as tf
 
-
 def tf_preprocess_image(image, label):
+    """
+    Converts image to float32 and normalizes to [0, 1].
+    Expected input: image tensor from dataset, label.
+    """
+    image = tf.image.convert_image_dtype(image, tf.float32)
+    return image, label
 
-    # 1. Ensure image is float32 (Required for neural networks)
-    image = tf.cast(image, tf.float32)
-
-    # 2. Normalize pixel values to be between 0 and 1
-    image = image / 255.0
-
-    # Note: Resizing is already handled by image_dataset_from_directory in train.py
+def augment_data(image, label):
+    """
+    Applies random augmentation to training data.
+    """
+    image = tf.image.random_flip_left_right(image)
+    image = tf.image.random_brightness(image, max_delta=0.1)
+    image = tf.image.random_contrast(image, lower=0.9, upper=1.1)
     return image, label
