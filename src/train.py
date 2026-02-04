@@ -1,114 +1,102 @@
 import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.optimizers import Adam
 import os
-import json
 import numpy as np
-from collections import Counter
+from sklearn.utils import class_weight
 
-from src.preprocessing import preprocess_image
-from src.model import build_baseline_model
-
-IMG_HEIGHT = 224
-IMG_WIDTH = 224
+# CONFIGURATION
+IMG_HEIGHT, IMG_WIDTH = 224, 224
 BATCH_SIZE = 32
-EPOCHS = 1          # Smoke test = 1 epoch
-DATA_DIR = "data/train"
-MODEL_SAVE_PATH = "models/baseline_model.h5"
+EPOCHS = 20
+LEARNING_RATE = 0.001
+DATA_DIR = '../data/train'
 
-# Utility: Class Weights
-def compute_class_weights(dataset):
-    labels = []
+# DATA GENERATORS
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    validation_split=0.2
+)
 
-    for _, y in dataset:
-        labels.extend(y.numpy())
+print("Loading Training Data...")
+train_generator = train_datagen.flow_from_directory(
+    DATA_DIR,
+    target_size=(IMG_HEIGHT, IMG_WIDTH),
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    subset='training',
+    shuffle=True
+)
 
-    counter = Counter(labels)
-    total = sum(counter.values())
+print("Loading Validation Data...")
+validation_generator = train_datagen.flow_from_directory(
+    DATA_DIR,
+    target_size=(IMG_HEIGHT, IMG_WIDTH),
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    subset='validation',
+    shuffle=False
+)
 
-    class_weights = {
-        0: total / (2 * counter[0]),
-        1: total / (2 * counter[1])
-    }
+# CLASS WEIGHTS
+print("Calculating Class Weights...")
+train_labels = train_generator.classes
+class_weights_vals = class_weight.compute_class_weight(
+    class_weight='balanced',
+    classes=np.unique(train_labels),
+    y=train_labels
+)
+class_weights = dict(enumerate(class_weights_vals))
+print(f"Class Weights Calculated: {class_weights}")
 
-    print("Class weights:", class_weights)
-    return class_weights
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'), # لایه سوم طبق داکیومنت
+    tf.keras.layers.MaxPooling2D(2, 2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
 
-def main():
-    print("Starting training pipeline")
+# COMPILING
+model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
+              loss='binary_crossentropy',
+              metrics=['accuracy', tf.keras.metrics.Recall(name='recall')])
 
-    if tf.config.list_physical_devices('GPU'):
-        print("✅ GPU detected")
-    else:
-        print("⚠️ Running on CPU")
+# CALLBACKS
+checkpoint = ModelCheckpoint(
+    '../models/best_model.h5',
+    monitor='val_loss',
+    save_best_only=True,
+    mode='min',
+    verbose=1
+)
 
-    if not os.path.exists(DATA_DIR):
-        print(f"❌ Dataset directory '{DATA_DIR}' not found")
-        return
+early_stopping = EarlyStopping(
+    monitor='val_loss',
+    patience=5,
+    restore_best_weights=True,
+    verbose=1
+)
 
-    print("Loading dataset...")
+# TRAINING WITH CLASS WEIGHTS
+print("Starting Training...")
+history = model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // BATCH_SIZE,
+    epochs=EPOCHS,
+    validation_data=validation_generator,
+    validation_steps=validation_generator.samples // BATCH_SIZE,
+    callbacks=[checkpoint, early_stopping],
+    class_weight=class_weights
+)
 
-    train_ds = tf.keras.utils.image_dataset_from_directory(
-        DATA_DIR,
-        validation_split=0.2,
-        subset="training",
-        seed=123,
-        image_size=(IMG_HEIGHT, IMG_WIDTH),
-        batch_size=BATCH_SIZE,
-        label_mode="binary"
-    )
-
-    val_ds = tf.keras.utils.image_dataset_from_directory(
-        DATA_DIR,
-        validation_split=0.2,
-        subset="validation",
-        seed=123,
-        image_size=(IMG_HEIGHT, IMG_WIDTH),
-        batch_size=BATCH_SIZE,
-        label_mode="binary"
-    )
-
-    # Preprocessing
-    train_ds = train_ds.map(lambda x, y: (preprocess_image(x), y))
-    val_ds = val_ds.map(lambda x, y: (preprocess_image(x), y))
-
-    # Smoke test
-    train_ds_smoke = train_ds.take(2)
-    val_ds_smoke = val_ds.take(1)
-
-    print("Building model...")
-    model = build_baseline_model()
-
-    model.compile(
-        optimizer="adam",
-        loss="binary_crossentropy",
-        metrics=[
-            "accuracy",
-            tf.keras.metrics.Recall(name="recall")
-        ]
-    )
-
-    # Class weighting
-    class_weights = compute_class_weights(train_ds_smoke)
-
-    print("Starting training (Smoke Test)...")
-    history = model.fit(
-        train_ds_smoke,
-        validation_data=val_ds_smoke,
-        epochs=EPOCHS,
-        class_weight=class_weights
-    )
-
-    # Save outputs
-    os.makedirs("models", exist_ok=True)
-    os.makedirs("logs", exist_ok=True)
-
-    model.save(MODEL_SAVE_PATH)
-
-    with open("logs/history.json", "w") as f:
-        json.dump(history.history, f)
-
-    print(f"✅ Model saved to {MODEL_SAVE_PATH}")
-    print("✅ Training pipeline completed successfully")
-
-
-if __name__ == "__main__":
-    main()
+print("Training Finished successfully.")
