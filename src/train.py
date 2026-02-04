@@ -72,7 +72,11 @@ def main():
     model.compile(
         optimizer='adam',
         loss='binary_crossentropy',
-        metrics=['accuracy']
+        metrics=[
+            'accuracy',
+            tf.keras.metrics.Recall(name='recall'),
+            tf.keras.metrics.Precision(name='precision')
+        ]
     )
 
     print("Starting training (Smoke Test)...")
