@@ -1,102 +1,133 @@
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-from tensorflow.keras.optimizers import Adam
 import os
 import numpy as np
+import tensorflow as tf
 from sklearn.utils import class_weight
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-# CONFIGURATION
-IMG_HEIGHT, IMG_WIDTH = 224, 224
+try:
+    import model_builder
+except ImportError:
+    raise ImportError("Could not find 'model_builder.py'. Make sure it is in the same directory.")
+
+# --- Configuration ---
+IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 20
+EPOCHS = 10
 LEARNING_RATE = 0.001
-DATA_DIR = '../data/train'
+DATA_DIR = '../data'
+MODEL_SAVE_PATH = os.path.join('../models', 'resnet_model.h5')
 
-# DATA GENERATORS
-train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    validation_split=0.2
-)
 
-print("Loading Training Data...")
-train_generator = train_datagen.flow_from_directory(
-    DATA_DIR,
-    target_size=(IMG_HEIGHT, IMG_WIDTH),
-    batch_size=BATCH_SIZE,
-    class_mode='binary',
-    subset='training',
-    shuffle=True
-)
+# --- TEMPORARY DATA LOADER
+def get_temporary_data_generators(data_dir, target_size, batch_size):
+    """
+    Creates data generators. Mimics what 'data_loader.py' should do.
+    Handles 'train' folder and splits validation automatically if needed.
+    """
+    train_dir = os.path.join(data_dir, 'train')
 
-print("Loading Validation Data...")
-validation_generator = train_datagen.flow_from_directory(
-    DATA_DIR,
-    target_size=(IMG_HEIGHT, IMG_WIDTH),
-    batch_size=BATCH_SIZE,
-    class_mode='binary',
-    subset='validation',
-    shuffle=False
-)
+    if not os.path.exists(train_dir):
+        raise FileNotFoundError(f"Directory not found: {train_dir}")
 
-# CLASS WEIGHTS
-print("Calculating Class Weights...")
-train_labels = train_generator.classes
-class_weights_vals = class_weight.compute_class_weight(
-    class_weight='balanced',
-    classes=np.unique(train_labels),
-    y=train_labels
-)
-class_weights = dict(enumerate(class_weights_vals))
-print(f"Class Weights Calculated: {class_weights}")
+    print(f"[Data Loader] Creating generators from: {train_dir}")
 
-model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'), # لایه سوم طبق داکیومنت
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dropout(0.5),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-])
+    # Data Augmentation & Preprocessing
+    # Rescale is mandatory for Neural Networks (0-255 -> 0-1)
+    train_datagen = ImageDataGenerator(
+        rescale=1. / 255,
+        validation_split=0.2,  # Using 20% of training data for validation
+        rotation_range=10,
+        zoom_range=0.1,
+        horizontal_flip=True
+    )
 
-# COMPILING
-model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
-              loss='binary_crossentropy',
-              metrics=['accuracy', tf.keras.metrics.Recall(name='recall')])
+    # Generator for Training
+    print("[Data Loader] Found images for TRAINING:")
+    train_gen = train_datagen.flow_from_directory(
+        train_dir,
+        target_size=target_size,
+        batch_size=batch_size,
+        class_mode='binary',  # IMPORTANT: 'binary' for Sigmoid output
+        subset='training',
+        shuffle=True
+    )
 
-# CALLBACKS
-checkpoint = ModelCheckpoint(
-    '../models/best_model.h5',
-    monitor='val_loss',
-    save_best_only=True,
-    mode='min',
-    verbose=1
-)
+    # Generator for Validation
+    print("[Data Loader] Found images for VALIDATION:")
+    val_gen = train_datagen.flow_from_directory(
+        train_dir,
+        target_size=target_size,
+        batch_size=batch_size,
+        class_mode='binary',  # IMPORTANT: 'binary' for Sigmoid output
+        subset='validation',
+        shuffle=False
+    )
 
-early_stopping = EarlyStopping(
-    monitor='val_loss',
-    patience=5,
-    restore_best_weights=True,
-    verbose=1
-)
+    return train_gen, val_gen
 
-# TRAINING WITH CLASS WEIGHTS
-print("Starting Training...")
-history = model.fit(
-    train_generator,
-    steps_per_epoch=train_generator.samples // BATCH_SIZE,
-    epochs=EPOCHS,
-    validation_data=validation_generator,
-    validation_steps=validation_generator.samples // BATCH_SIZE,
-    callbacks=[checkpoint, early_stopping],
-    class_weight=class_weights
-)
 
-print("Training Finished successfully.")
+# --- MAIN TRAINING PIPELINE ---
+def train_model():
+    print("=" * 50)
+    print(f"Starting Training Pipeline - Phase 2 (ResNet50)")
+    print("=" * 50)
+
+    try:
+        train_gen, val_gen = get_temporary_data_generators(
+            data_dir=DATA_DIR,
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE
+        )
+    except Exception as e:
+        print(f"❌ Error loading data: {e}")
+        return
+
+    print("\n[Class Weights] Calculating weights for imbalance handling...")
+
+    train_labels = train_gen.classes
+
+    # Compute weights:
+    class_weights_array = class_weight.compute_class_weight(
+        class_weight='balanced',
+        classes=np.unique(train_labels),
+        y=train_labels
+    )
+
+    class_weights = dict(enumerate(class_weights_array))
+
+    print(f"✅ Class Weights Computed: {class_weights}")
+    print(f"   (Class 0: Normal, Class 1: Pneumonia)")
+
+    print("\n[Model] Building ResNet50 architecture...")
+    model = model_builder.build_resnet50_model(input_shape=IMG_SIZE + (3,))
+
+    print("[Model] Compiling with Optimizer=Adam, Loss=BinaryCrossentropy...")
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
+        loss='binary_crossentropy',  # Matches Sigmoid output
+        metrics=['accuracy', tf.keras.metrics.Recall(name='recall')]
+    )
+
+    if not os.path.exists('../models'):
+        os.makedirs('../models')
+
+    callbacks = [
+        EarlyStopping(patience=3, monitor='val_loss', restore_best_weights=True),
+        ModelCheckpoint(MODEL_SAVE_PATH, save_best_only=True, monitor='val_accuracy')
+    ]
+
+    print(f"\n[Training] Starting training for {EPOCHS} epochs...")
+    history = model.fit(
+        train_gen,
+        epochs=EPOCHS,
+        validation_data=val_gen,
+        class_weight=class_weights,
+        callbacks=callbacks
+    )
+
+    print(f"\n✅ Training Finished. Model saved at: {MODEL_SAVE_PATH}")
+
+
+if __name__ == "__main__":
+    train_model()
