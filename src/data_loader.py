@@ -125,7 +125,11 @@ def get_data_loaders(data_base_path, batch_size=32):
     return train_loader, val_loader, test_loader
 
 
-DATA_DIR = "D:\mytemp\chest_xray"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+project_root = os.path.dirname(current_dir)
+
+DATA_DIR = os.path.join(project_root, "data")
 
 
 
