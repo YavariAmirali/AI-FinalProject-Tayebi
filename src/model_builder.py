@@ -22,7 +22,8 @@ def build_resnet50_model(input_shape=(224, 224, 3)):
     x = base_model(inputs, training=False)
 
     # Add custom classification head
-    x = layers.Flatten()(x)
+    x = layers.GlobalAveragePooling2D()(x)
+
     x = layers.Dense(256, activation='relu')(x)
     x = layers.Dropout(0.5)(x)
 
