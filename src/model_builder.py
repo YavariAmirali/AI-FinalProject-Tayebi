@@ -36,7 +36,6 @@ def build_resnet50_model(input_shape=(224, 224, 3)):
 
 
 if __name__ == "__main__":
-    # Test the function to see the model summary
     model = build_resnet50_model()
     model.summary()
     print("Model built successfully.")

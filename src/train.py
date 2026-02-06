@@ -11,7 +11,7 @@ from data_loader import get_data_loaders, DATA_DIR
 # Configuration
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 10  # Start small to test
+EPOCHS = 10
 LEARNING_RATE = 0.001
 MODEL_SAVE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'resnet_model.h5')
 
@@ -21,8 +21,7 @@ def train_model():
     print(f"Starting Training Pipeline - Phase 2 (ResNet50)")
     print("=" * 50)
 
-    # 1. LOAD DATA (Using your professional MedicalDataGenerator)
-    # This automatically handles ResNet preprocessing and Elastic Transform
+    # 1. LOAD DATA
     try:
         print(f"[Data Loader] Loading from: {DATA_DIR}")
         train_gen, val_gen, test_gen = get_data_loaders(DATA_DIR, batch_size=BATCH_SIZE)
@@ -30,7 +29,7 @@ def train_model():
         print(f"❌ Error loading data: {e}")
         return
 
-    # 2. HANDLE IMBALANCE (Class Weights)
+    # HANDLE IMBALANCE (Class Weights)
     print("\n[Class Weights] Calculating weights for imbalance handling...")
     train_labels = train_gen.labels
     class_weights_array = class_weight.compute_class_weight(
@@ -41,9 +40,8 @@ def train_model():
     class_weights = dict(enumerate(class_weights_array))
     print(f"✅ Class Weights Computed: {class_weights}")
 
-    # 3. BUILD MODEL
+    # BUILD MODEL
     print("\n[Model] Building ResNet50 architecture...")
-    # Note: Your model_builder already handles input shape
     model = model_builder.build_resnet50_model(input_shape=IMG_SIZE + (3,))
 
     print("[Model] Compiling with Optimizer=Adam, Loss=BinaryCrossentropy...")
@@ -53,10 +51,9 @@ def train_model():
         metrics=['accuracy', tf.keras.metrics.Recall(name='recall')]
     )
 
-    # Ensure models directory exists
     os.makedirs(os.path.dirname(MODEL_SAVE_PATH), exist_ok=True)
 
-    # 4. CALLBACKS
+    # CALLBACKS
     callbacks = [
         # Stop if validation loss doesn't improve for 3 epochs
         EarlyStopping(patience=3, monitor='val_loss', restore_best_weights=True, verbose=1),
@@ -68,7 +65,7 @@ def train_model():
         ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=1e-6, verbose=1)
     ]
 
-    # 5. TRAIN
+    # TRAIN
     print(f"\n[Training] Starting training for {EPOCHS} epochs...")
     history = model.fit(
         train_gen,

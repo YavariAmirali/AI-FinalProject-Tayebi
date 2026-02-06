@@ -26,7 +26,7 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
         self.image_paths = []
         self.labels = []
 
-
+        # Automatically detect class names from the folder structure
         self.class_names = sorted(
             [
                 d
@@ -81,7 +81,7 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
             if img is None:
                 continue
-
+            # OpenCV loads as BGR by default, so we must switch to RGB for the model
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             if self.augment:
@@ -89,7 +89,7 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
             else:
                 img = cv2.resize(img, self.target_size)
 
-
+            # Preprocess inputs specifically for ResNet50 (zero-centering
             img = preprocess_input(img)
 
             images.append(img)
@@ -99,15 +99,14 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
 
 def get_data_loaders(data_base_path, batch_size=32):
-
-
+    # Train loader gets augmentation and shuffling turned on
     train_loader = MedicalDataGenerator(
         os.path.join(data_base_path, "train"),
         batch_size=batch_size,
         augment=True,
         shuffle=True,
     )
-
+    # Validation loader should provide clean, un-augmented images
     val_loader = MedicalDataGenerator(
         os.path.join(data_base_path, "val"),
         batch_size=batch_size,
