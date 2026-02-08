@@ -19,8 +19,19 @@ MODEL_SAVE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(_
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs',
                        datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOCK_FILE = os.path.join(BASE_DIR, 'data', '.split_fixed')
 
 def train_model():
+    if not os.path.exists(LOCK_FILE):
+
+        print("\n❌ CRITICAL ERROR: Validation Split Not Fixed!")
+        print(f"   The lock file was not found at: {LOCK_FILE}")
+        print("   You are attempting to train on the unsafe Kaggle default split (only 16 val images).")
+        print("   Please run 'python src/fix_validation_split.py' first to fix the data.")
+        print("=" * 50)
+        return
+
     print("=" * 50)
     print(f"Starting Training Pipeline - Phase 2 (ResNet50) - WEEK 6 FULL RUN")
     print("=" * 50)
@@ -60,7 +71,6 @@ def train_model():
 
     # CALLBACKS
     callbacks = [
-        # UPDATE: Increased patience to 10 so model has time to learn
         EarlyStopping(patience=10, monitor='val_loss', restore_best_weights=True, verbose=1),
 
         # Save the BEST model (not just the last one)
@@ -69,7 +79,7 @@ def train_model():
         # Reduce learning rate if stuck
         ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=1e-6, verbose=1),
 
-        # UPDATE: Added TensorBoard for logging history [cite: 1001]
+        # Added TensorBoard for logging history
         TensorBoard(log_dir=LOG_DIR, histogram_freq=1)
     ]
 
