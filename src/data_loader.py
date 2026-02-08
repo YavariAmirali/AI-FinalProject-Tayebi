@@ -98,6 +98,9 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
         return np.array(images), np.array(labels)
 
 
+
+
+
 def get_data_loaders(data_base_path, batch_size=32):
     # Train loader gets augmentation and shuffling turned on
     train_loader = MedicalDataGenerator(
@@ -121,6 +124,8 @@ def get_data_loaders(data_base_path, batch_size=32):
         shuffle=False,
     )
 
+
+
     return train_loader, val_loader, test_loader
 
 
@@ -128,13 +133,19 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 
 project_root = os.path.dirname(current_dir)
 
+
+#local address
 DATA_DIR = os.path.join(project_root, "data")
 
 
 
 def main():
 
+
+
     train_gen, val_gen, test_gen = get_data_loaders(DATA_DIR, batch_size=8)
+
+
 
     print("Train batches:", len(train_gen))
     print("Val batches:", len(val_gen))
@@ -163,6 +174,11 @@ def main():
     print("Class mapping:", train_gen.class_to_idx)
 
     print("✅ Data loader sanity test passed!")
+
+
+
+
+
 
 
 if __name__ == "__main__":
