@@ -2,23 +2,38 @@ import os
 import tensorflow as tf
 import numpy as np
 from sklearn.utils import class_weight
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
+import datetime
 
-# Import your custom modules
 import model_builder
 from data_loader import get_data_loaders, DATA_DIR
 
 # Configuration
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 10
+EPOCHS = 30
 LEARNING_RATE = 0.001
-MODEL_SAVE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'resnet_model.h5')
 
+MODEL_SAVE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models',
+                               'best_resnet_model.h5')
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs',
+                       datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOCK_FILE = os.path.join(BASE_DIR, 'data', '.split_fixed')
 
 def train_model():
+    if not os.path.exists(LOCK_FILE):
+
+        print("\n❌ CRITICAL ERROR: Validation Split Not Fixed!")
+        print(f"   The lock file was not found at: {LOCK_FILE}")
+        print("   You are attempting to train on the unsafe Kaggle default split (only 16 val images).")
+        print("   Please run 'python src/fix_validation_split.py' first to fix the data.")
+        print("=" * 50)
+        return
+
     print("=" * 50)
-    print(f"Starting Training Pipeline - Phase 2 (ResNet50)")
+    print(f"Starting Training Pipeline - Phase 2 (ResNet50) - WEEK 6 FULL RUN")
     print("=" * 50)
 
     # 1. LOAD DATA
@@ -48,21 +63,24 @@ def train_model():
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
         loss='binary_crossentropy',
-        metrics=['accuracy', tf.keras.metrics.Recall(name='recall')]
+        metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
     )
 
     os.makedirs(os.path.dirname(MODEL_SAVE_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(LOG_DIR), exist_ok=True)
 
     # CALLBACKS
     callbacks = [
-        # Stop if validation loss doesn't improve for 3 epochs
-        EarlyStopping(patience=3, monitor='val_loss', restore_best_weights=True, verbose=1),
+        EarlyStopping(patience=10, monitor='val_loss', restore_best_weights=True, verbose=1),
 
         # Save the BEST model (not just the last one)
         ModelCheckpoint(MODEL_SAVE_PATH, save_best_only=True, monitor='val_loss', verbose=1),
 
-        # Reduce learning rate if stuck (helps Fine-Tuning later)
-        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=1e-6, verbose=1)
+        # Reduce learning rate if stuck
+        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=1e-6, verbose=1),
+
+        # Added TensorBoard for logging history
+        TensorBoard(log_dir=LOG_DIR, histogram_freq=1)
     ]
 
     # TRAIN
@@ -75,7 +93,7 @@ def train_model():
         callbacks=callbacks
     )
 
-    print(f"\n✅ Training Finished. Model saved at: {MODEL_SAVE_PATH}")
+    print(f"\n✅ Training Finished. Best model saved at: {MODEL_SAVE_PATH}")
 
 
 if __name__ == "__main__":
