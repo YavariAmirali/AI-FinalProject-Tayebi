@@ -7,15 +7,13 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 
 
 class MedicalDataGenerator(tf.keras.utils.Sequence):
-
-
     def __init__(
-        self,
-        directory,
-        batch_size=32,
-        target_size=(224, 224),
-        augment=False,
-        shuffle=True,
+            self,
+            directory,
+            batch_size=32,
+            target_size=(224, 224),
+            augment=False,
+            shuffle=True,
     ):
         self.directory = directory
         self.batch_size = batch_size
@@ -26,7 +24,6 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
         self.image_paths = []
         self.labels = []
 
-        # Automatically detect class names from the folder structure
         self.class_names = sorted(
             [
                 d
@@ -39,13 +36,14 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
         for class_name in self.class_names:
             class_dir = os.path.join(directory, class_name)
-            for img_name in os.listdir(class_dir):
+            # Sort filenames! Essential for matching errors to files
+            for img_name in sorted(os.listdir(class_dir)):
                 self.image_paths.append(os.path.join(class_dir, img_name))
                 self.labels.append(self.class_to_idx[class_name])
 
         self.indices = np.arange(len(self.image_paths))
 
-
+        # Medical Augmentations
         self.augmentation = A.Compose(
             [
                 A.Rotate(limit=20, p=0.5),
@@ -67,11 +65,11 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
     def __getitem__(self, idx):
         batch_indices = self.indices[
-            idx * self.batch_size : (idx + 1) * self.batch_size
-        ]
+                        idx * self.batch_size: (idx + 1) * self.batch_size
+                        ]
 
         images = []
-        labels = []
+        batch_labels = []
 
         for i in batch_indices:
             file_path = self.image_paths[i]
@@ -81,7 +79,7 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
             if img is None:
                 continue
-            # OpenCV loads as BGR by default, so we must switch to RGB for the model
+
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             if self.augment:
@@ -89,27 +87,29 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
             else:
                 img = cv2.resize(img, self.target_size)
 
-            # Preprocess inputs specifically for ResNet50 (zero-centering
+            # ResNet Specific Preprocessing
             img = preprocess_input(img)
 
             images.append(img)
-            labels.append(label)
+            batch_labels.append(label)
 
-        return np.array(images), np.array(labels)
+        return np.array(images), np.array(batch_labels)
 
+    def get_labels(self):
+        return self.labels
 
-
+    def get_filepaths(self):
+        return self.image_paths
 
 
 def get_data_loaders(data_base_path, batch_size=32):
-    # Train loader gets augmentation and shuffling turned on
     train_loader = MedicalDataGenerator(
         os.path.join(data_base_path, "train"),
         batch_size=batch_size,
         augment=True,
         shuffle=True,
     )
-    # Validation loader should provide clean, un-augmented images
+
     val_loader = MedicalDataGenerator(
         os.path.join(data_base_path, "val"),
         batch_size=batch_size,
@@ -124,62 +124,10 @@ def get_data_loaders(data_base_path, batch_size=32):
         shuffle=False,
     )
 
-
-
     return train_loader, val_loader, test_loader
-
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 project_root = os.path.dirname(current_dir)
 
-
-#local address
 DATA_DIR = os.path.join(project_root, "data")
-
-
-
-def main():
-
-
-
-    train_gen, val_gen, test_gen = get_data_loaders(DATA_DIR, batch_size=8)
-
-
-
-    print("Train batches:", len(train_gen))
-    print("Val batches:", len(val_gen))
-    print("Test batches:", len(test_gen))
-
-
-    x, y = train_gen[0]
-
-    print("Images shape:", x.shape)
-    print("Labels shape:", y.shape)
-    print("Labels:", y)
-
-
-    print("Pixel min:", x.min())
-    print("Pixel max:", x.max())
-
-
-    xv, yv = val_gen[0]
-    print("Val batch shape:", xv.shape)
-
-
-    xt, yt = test_gen[0]
-    print("Test batch shape:", xt.shape)
-
- 
-    print("Class mapping:", train_gen.class_to_idx)
-
-    print("✅ Data loader sanity test passed!")
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    main()
