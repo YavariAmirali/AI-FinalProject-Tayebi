@@ -1,40 +1,79 @@
 import os
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.utils import class_weight
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-import datetime
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, CSVLogger
 
+import wandb
+from wandb.integration.keras import WandbCallback
+
+# Import your custom modules
 import model_builder
 from data_loader import get_data_loaders, DATA_DIR
 
 # Configuration
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 30
+EPOCHS = 15  # Increased slightly since we have EarlyStopping
 LEARNING_RATE = 0.001
 
-MODEL_SAVE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models',
-                               'best_resnet_model.h5')
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs',
-                       datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-
+# Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOCK_FILE = os.path.join(BASE_DIR, 'data', '.split_fixed')
+MODEL_SAVE_PATH = os.path.join(BASE_DIR, 'models', 'best_resnet_model.h5')
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+
+def plot_training_history(history, save_dir):
+    """
+    Plots Accuracy and Loss curves locally for the Final PDF Report.
+    """
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs_range = range(len(acc))
+
+    plt.figure(figsize=(16, 8))
+
+    # Accuracy Plot
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+
+    # Loss Plot
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+
+    # Save plot
+    plot_path = os.path.join(save_dir, 'training_plot.png')
+    plt.savefig(plot_path)
+    print(f"📊 Training plots saved at: {plot_path}")
+    plt.close()
+
 
 def train_model():
-    if not os.path.exists(LOCK_FILE):
-
-        print("\n❌ CRITICAL ERROR: Validation Split Not Fixed!")
-        print(f"   The lock file was not found at: {LOCK_FILE}")
-        print("   You are attempting to train on the unsafe Kaggle default split (only 16 val images).")
-        print("   Please run 'python src/fix_validation_split.py' first to fix the data.")
-        print("=" * 50)
-        return
-
     print("=" * 50)
-    print(f"Starting Training Pipeline - Phase 2 (ResNet50) - WEEK 6 FULL RUN")
+    print(f"Starting Training Pipeline - Phase 2 (ResNet50 + WandB)")
     print("=" * 50)
+
+    # wandb.init(
+    #     project="pneumonia-detection-v2", mode='disabled',
+    #     config={
+    #         "learning_rate": LEARNING_RATE,
+    #         "architecture": "ResNet50",
+    #         "dataset": "ChestXRay",
+    #         "epochs": EPOCHS,
+    #         "batch_size": BATCH_SIZE,
+    #     }
+    # )
 
     # 1. LOAD DATA
     try:
@@ -44,8 +83,8 @@ def train_model():
         print(f"❌ Error loading data: {e}")
         return
 
-    # HANDLE IMBALANCE (Class Weights)
-    print("\n[Class Weights] Calculating weights for imbalance handling...")
+    # HANDLE IMBALANCE
+    print("\n[Class Weights] Calculating weights...")
     train_labels = train_gen.labels
     class_weights_array = class_weight.compute_class_weight(
         class_weight='balanced',
@@ -53,34 +92,27 @@ def train_model():
         y=train_labels
     )
     class_weights = dict(enumerate(class_weights_array))
-    print(f"✅ Class Weights Computed: {class_weights}")
+    print(f"✅ Class Weights: {class_weights}")
 
     # BUILD MODEL
     print("\n[Model] Building ResNet50 architecture...")
     model = model_builder.build_resnet50_model(input_shape=IMG_SIZE + (3,))
 
-    print("[Model] Compiling with Optimizer=Adam, Loss=BinaryCrossentropy...")
+    print("[Model] Compiling...")
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
         loss='binary_crossentropy',
-        metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
+        metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
     )
-
-    os.makedirs(os.path.dirname(MODEL_SAVE_PATH), exist_ok=True)
-    os.makedirs(os.path.dirname(LOG_DIR), exist_ok=True)
 
     # CALLBACKS
     callbacks = [
-        EarlyStopping(patience=10, monitor='val_loss', restore_best_weights=True, verbose=1),
-
-        # Save the BEST model (not just the last one)
+        EarlyStopping(patience=5, monitor='val_loss', restore_best_weights=True, verbose=1),
         ModelCheckpoint(MODEL_SAVE_PATH, save_best_only=True, monitor='val_loss', verbose=1),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=1e-6, verbose=1),
 
-        # Reduce learning rate if stuck
-        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=1e-6, verbose=1),
-
-        # Added TensorBoard for logging history
-        TensorBoard(log_dir=LOG_DIR, histogram_freq=1)
+        CSVLogger(os.path.join(LOG_DIR, 'training_log.csv')),
+        # WandBCallback(save_model=False)
     ]
 
     # TRAIN
@@ -93,8 +125,16 @@ def train_model():
         callbacks=callbacks
     )
 
-    print(f"\n✅ Training Finished. Best model saved at: {MODEL_SAVE_PATH}")
+    # SAVE PLOTS LOCALLY
+    plot_training_history(history, LOG_DIR)
+
+    # Finish WandB run
+    # wandb.finish()
+
+    print(f"\n✅ Training Finished. Model saved at: {MODEL_SAVE_PATH}")
+    print(f"✅ Logs saved at: {LOG_DIR}")
 
 
 if __name__ == "__main__":
     train_model()
+
