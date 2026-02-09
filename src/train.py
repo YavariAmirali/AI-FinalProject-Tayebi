@@ -64,16 +64,16 @@ def train_model():
     print(f"Starting Training Pipeline - Phase 2 (ResNet50 + WandB)")
     print("=" * 50)
 
-    wandb.init(
-        project="pneumonia-detection-v2", mode='disabled',
-        config={
-            "learning_rate": LEARNING_RATE,
-            "architecture": "ResNet50",
-            "dataset": "ChestXRay",
-            "epochs": EPOCHS,
-            "batch_size": BATCH_SIZE,
-        }
-    )
+    # wandb.init(
+    #     project="pneumonia-detection-v2", mode='disabled',
+    #     config={
+    #         "learning_rate": LEARNING_RATE,
+    #         "architecture": "ResNet50",
+    #         "dataset": "ChestXRay",
+    #         "epochs": EPOCHS,
+    #         "batch_size": BATCH_SIZE,
+    #     }
+    # )
 
     # 1. LOAD DATA
     try:
