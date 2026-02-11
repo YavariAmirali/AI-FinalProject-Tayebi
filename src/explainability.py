@@ -5,12 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
-    """
-    Generates a Grad-CAM heatmap for a given image and model.
-    """
-    # 1. We need to access the inner ResNet50 model because our main model wraps it.
-    # Find the nested 'resnet50' layer
+def make_gradcam_heatmap(img_array, model, pred_index=None):
     base_model = None
     for layer in model.layers:
         if "resnet50" in layer.name:
@@ -20,44 +15,46 @@ def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None
     if base_model is None:
         raise ValueError("Could not find resnet50 base layer in the model!")
 
-    # 2. Create a model that maps the input image to the activations of the last conv layer
-    #    AND the output predictions.
-    #    We create a new model using the Functional API inputs/outputs.
-    grad_model = tf.keras.models.Model(
-        [model.inputs],
-        [base_model.get_layer(last_conv_layer_name).output, model.output]
-    )
+    # Extract the classification head (Layers 2 to the end: Pooling, Dense, Dropout, Dense)
+    head_layers = model.layers[2:]
 
-    # 3. Compute the Gradient
+    # Compute Gradients
     with tf.GradientTape() as tape:
-        last_conv_layer_output, preds = grad_model(img_array)
+        conv_outputs = base_model(img_array)
+        tape.watch(conv_outputs)
+
+        # Pass the feature maps through the classification head
+        x = conv_outputs
+        for layer in head_layers:
+            x = layer(x)
+        preds = x
+
+        # For binary classification, there's only 1 output node
         if pred_index is None:
-            pred_index = tf.argmax(preds[0])
+            pred_index = 0
         class_channel = preds[:, pred_index]
 
-    # This is the gradient of the output neuron (top predicted or chosen)
-    # with regard to the output feature map of the last conv layer
-    grads = tape.gradient(class_channel, last_conv_layer_output)
+    # Calculate gradients of the output node with respect to the feature maps
+    grads = tape.gradient(class_channel, conv_outputs)
 
-    # 4. Global Average Pooling of gradients
+    # Global Average Pooling of gradients (shape becomes [2048])
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
 
-    # 5. Multiply each channel in the feature map array
-    #    by "how important this channel is" with regard to the top predicted class
-    last_conv_layer_output = last_conv_layer_output[0]
-    heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
+    # Weight the feature maps by the pooled gradients
+    conv_outputs = conv_outputs[0]
+    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
     heatmap = tf.squeeze(heatmap)
 
-    # 6. Apply ReLU (we only care about positive influence)
-    heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
+    # Apply ReLU and normalize safely
+    heatmap = tf.maximum(heatmap, 0)
+    max_val = tf.math.reduce_max(heatmap)
+    if max_val > 0:
+        heatmap = heatmap / max_val
 
     return heatmap.numpy()
 
 
 def save_and_display_gradcam(img_path, heatmap, cam_path="cam.jpg", alpha=0.4):
-    """
-    Superimposes the heatmap on the original image.
-    """
     # Load the original image
     img = cv2.imread(img_path)
 
@@ -80,7 +77,7 @@ def save_and_display_gradcam(img_path, heatmap, cam_path="cam.jpg", alpha=0.4):
 if __name__ == "__main__":
     # Settings
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5')  # Use the fine-tuned model
+    MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5')
 
     # Pick a random Pneumonia image from test set to test
     TEST_IMG_DIR = os.path.join(BASE_DIR, 'data', 'test', 'PNEUMONIA')
@@ -103,9 +100,8 @@ if __name__ == "__main__":
         img = tf.keras.applications.resnet50.preprocess_input(img)
         img_array = np.expand_dims(img, axis=0)
 
-        # "conv5_block3_out" is the standard last layer name in ResNet50
         print("Generating Grad-CAM...")
-        heatmap = make_gradcam_heatmap(img_array, model, "conv5_block3_out")
+        heatmap = make_gradcam_heatmap(img_array, model)
 
         save_path = os.path.join(BASE_DIR, 'results', 'gradcam_test.jpg')
         save_and_display_gradcam(img_path, heatmap, save_path)

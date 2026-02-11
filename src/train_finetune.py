@@ -25,17 +25,16 @@ def run_fine_tuning():
     print(f"🚀 Starting Phase 2: Fine-Tuning Pipeline (Week 7)")
     print("=" * 50)
 
-    # 1. Check if previous model exists
     if not os.path.exists(LOAD_MODEL_PATH):
         print(f"❌ Error: Could not find {LOAD_MODEL_PATH}")
-        print("   You must run Week 6 training first.")
+        print("   You must train.py first.")
         return
 
-    # 2. Load Data
+    # Load Data
     print(f"[Data] Loading data generators...")
     train_gen, val_gen, test_gen = get_data_loaders(DATA_DIR, batch_size=BATCH_SIZE)
 
-    # Calculate Class Weights (Still needed)
+    # Calculate Class Weights
     train_labels = train_gen.labels
     class_weights_array = class_weight.compute_class_weight(
         class_weight='balanced',
@@ -44,30 +43,30 @@ def run_fine_tuning():
     )
     class_weights = dict(enumerate(class_weights_array))
 
-    # 3. Load the Week 6 Model
+    # Load the frozen_model
     print(f"[Model] Loading Best Model from Week 6: {LOAD_MODEL_PATH}")
     model = tf.keras.models.load_model(LOAD_MODEL_PATH)
 
-    # 4. Unfreeze layers
+    # Unfreeze layers
     print("[Model] Unfreezing last 20 layers for fine-tuning...")
     model = model_builder.unfreeze_model(model, num_layers_to_unfreeze=30)
 
-    # 5. Re-compile with LOW Learning Rate
-    print(f"[Model] Re-compiling with Learning Rate = {FINE_TUNE_LR}")
+    # Re-compile with LOW Learning Rate
+    print(f"[Model] Re-compiling with Learning Rate = 1e-5")
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=FINE_TUNE_LR),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),  # Keep this low!
         loss='binary_crossentropy',
         metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
     )
 
-    # 6. Callbacks
+    # Callbacks
     callbacks = [
         EarlyStopping(patience=5, monitor='val_loss', restore_best_weights=True, verbose=1),
         ModelCheckpoint(SAVE_MODEL_PATH, save_best_only=True, monitor='val_loss', verbose=1),
         TensorBoard(log_dir=LOG_DIR, histogram_freq=1)
     ]
 
-    # 7. Train (Fine-Tune)
+    # Train (Fine-Tune)
     print(f"\n[Training] Starting Fine-Tuning for {EPOCHS} epochs...")
     history = model.fit(
         train_gen,

@@ -35,8 +35,6 @@ def unfreeze_model(model, num_layers_to_unfreeze=20):
     """
     Unfreezes the top N layers of the base ResNet model for Fine-Tuning.
     """
-    # 1. Find the ResNet50 layer (it's nested inside our model)
-    # We look for the layer that is an instance of the Functional API (which ResNet is)
     base_model = None
     for layer in model.layers:
         if "resnet50" in layer.name:
@@ -47,11 +45,10 @@ def unfreeze_model(model, num_layers_to_unfreeze=20):
         print("Could not find ResNet50 base layer to unfreeze!")
         return model
 
-    # 2. Set the base model to trainable
+    # Set the base model to trainable
     base_model.trainable = True
 
-    # 3. Fine-tune behavior: Freeze all layers EXCEPT the last N layers
-    # This prevents destroying the learned weights of the earlier layers
+    # Fine-tune behavior: Freeze all layers EXCEPT the last N layers
     for layer in base_model.layers[:-num_layers_to_unfreeze]:
         layer.trainable = False
 
