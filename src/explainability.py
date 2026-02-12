@@ -15,7 +15,8 @@ def make_gradcam_heatmap(img_array, model, pred_index=None):
     if base_model is None:
         raise ValueError("Could not find resnet50 base layer in the model!")
 
-    # Extract the classification head (Layers 2 to the end: Pooling, Dense, Dropout, Dense)
+    # Extract the classification head (Layers 2 to the end: Poo
+    # ling, Dense, Dropout, Dense)
     head_layers = model.layers[2:]
 
     # Compute Gradients
@@ -73,13 +74,12 @@ def save_and_display_gradcam(img_path, heatmap, cam_path="cam.jpg", alpha=0.4):
     return cam_path
 
 
-# --- TEST FUNCTION (Run this to verify it works) ---
+# --- TEST FUNCTION
 if __name__ == "__main__":
     # Settings
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5')
 
-    # Pick a random Pneumonia image from test set to test
     TEST_IMG_DIR = os.path.join(BASE_DIR, 'data', 'test', 'PNEUMONIA')
 
     if not os.path.exists(MODEL_PATH):
