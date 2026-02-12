@@ -49,7 +49,7 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
                 A.Rotate(limit=20, p=0.5),
                 A.RandomBrightnessContrast(p=0.2),
                 A.ZoomBlur(max_factor=1.1, p=0.2),
-                A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.3),
+                A.ElasticTransform(alpha=1, sigma=50, p=0.3),
                 A.Resize(target_size[0], target_size[1]),
             ]
         )
