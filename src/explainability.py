@@ -5,12 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
-    """
-    Generates a Grad-CAM heatmap for a given image and model.
-    """
-    # 1. We need to access the inner ResNet50 model because our main model wraps it.
-    # Find the nested 'resnet50' layer
+def make_gradcam_heatmap(img_array, model, pred_index=None):
     base_model = None
     for layer in model.layers:
         if "resnet50" in layer.name:
@@ -20,69 +15,70 @@ def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None
     if base_model is None:
         raise ValueError("Could not find resnet50 base layer in the model!")
 
-    # 2. Create a model that maps the input image to the activations of the last conv layer
-    #    AND the output predictions.
-    #    We create a new model using the Functional API inputs/outputs.
-    grad_model = tf.keras.models.Model(
-        [model.inputs],
-        [base_model.get_layer(last_conv_layer_name).output, model.output]
-    )
+    # Extract the classification head
+    # Assuming the structure: Input -> ResNet50 (layer 1) -> Head Layers (layer 2+)
+    head_layers = model.layers[2:]
 
-    # 3. Compute the Gradient
+    # Compute Gradients
     with tf.GradientTape() as tape:
-        last_conv_layer_output, preds = grad_model(img_array)
+        conv_outputs = base_model(img_array)
+        tape.watch(conv_outputs)
+
+        x = conv_outputs
+        for layer in head_layers:
+            x = layer(x)
+        preds = x
+
         if pred_index is None:
-            pred_index = tf.argmax(preds[0])
+            pred_index = 0
         class_channel = preds[:, pred_index]
 
-    # This is the gradient of the output neuron (top predicted or chosen)
-    # with regard to the output feature map of the last conv layer
-    grads = tape.gradient(class_channel, last_conv_layer_output)
-
-    # 4. Global Average Pooling of gradients
+    grads = tape.gradient(class_channel, conv_outputs)
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
 
-    # 5. Multiply each channel in the feature map array
-    #    by "how important this channel is" with regard to the top predicted class
-    last_conv_layer_output = last_conv_layer_output[0]
-    heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
+    conv_outputs = conv_outputs[0]
+    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
     heatmap = tf.squeeze(heatmap)
 
-    # 6. Apply ReLU (we only care about positive influence)
-    heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
+    heatmap = tf.maximum(heatmap, 0)
+    max_val = tf.math.reduce_max(heatmap)
+    if max_val > 0:
+        heatmap = heatmap / max_val
 
     return heatmap.numpy()
 
 
 def save_and_display_gradcam(img_path, heatmap, cam_path="cam.jpg", alpha=0.4):
-    """
-    Superimposes the heatmap on the original image.
-    """
-    # Load the original image
+    # Load and CROP the original image for display to match the model input
     img = cv2.imread(img_path)
 
-    # Resize heatmap to be the same size as the original image
+    # This ensures the heatmap overlays correctly on the LUNGS, not the borders
+    h, w = img.shape[:2]
+    crop_fraction = 0.10
+    start_y = int(h * crop_fraction)
+    end_y = int(h * (1 - crop_fraction))
+    start_x = int(w * crop_fraction)
+    end_x = int(w * (1 - crop_fraction))
+    img = img[start_y:end_y, start_x:end_x]
+    # ---------------------------------------------------------
+
+    # Resize heatmap to be the same size as the cropped image
     heatmap = np.uint8(255 * heatmap)
     heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
 
-    # Use jet colormap to colorize heatmap
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-    # Superimpose the heatmap on original image
     superimposed_img = heatmap * alpha + img
 
-    # Save
     cv2.imwrite(cam_path, superimposed_img)
     return cam_path
 
 
-# --- TEST FUNCTION (Run this to verify it works) ---
 if __name__ == "__main__":
     # Settings
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5')  # Use the fine-tuned model
+    MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5')
 
-    # Pick a random Pneumonia image from test set to test
+    # Let's pick a PNEUMONIA image to see the disease pattern
     TEST_IMG_DIR = os.path.join(BASE_DIR, 'data', 'test', 'PNEUMONIA')
 
     if not os.path.exists(MODEL_PATH):
@@ -90,6 +86,7 @@ if __name__ == "__main__":
         MODEL_PATH = os.path.join(BASE_DIR, 'models', 'best_resnet_model.h5')
 
     if os.path.exists(TEST_IMG_DIR) and len(os.listdir(TEST_IMG_DIR)) > 0:
+        # Pick a random image or a specific one
         img_name = os.listdir(TEST_IMG_DIR)[0]
         img_path = os.path.join(TEST_IMG_DIR, img_name)
 
@@ -99,17 +96,31 @@ if __name__ == "__main__":
         # Preprocess Image
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        # APPLY SAME CROP AS TRAINING ---
+        h, w = img.shape[:2]
+        crop_fraction = 0.10  # 10% crop
+        start_y = int(h * crop_fraction)
+        end_y = int(h * (1 - crop_fraction))
+        start_x = int(w * crop_fraction)
+        end_x = int(w * (1 - crop_fraction))
+        img = img[start_y:end_y, start_x:end_x]
+        # -------------------------------------------------
+
         img = cv2.resize(img, (224, 224))
         img = tf.keras.applications.resnet50.preprocess_input(img)
         img_array = np.expand_dims(img, axis=0)
 
-        # "conv5_block3_out" is the standard last layer name in ResNet50
-        print("Generating Grad-CAM...")
-        heatmap = make_gradcam_heatmap(img_array, model, "conv5_block3_out")
+        print(f"Generating Grad-CAM for {img_name}...")
+
+        # Get the prediction score
+        preds = model.predict(img_array)
+        print(f"Prediction: {preds[0][0]:.4f} (0=Normal, 1=Pneumonia)")
+
+        heatmap = make_gradcam_heatmap(img_array, model)
 
         save_path = os.path.join(BASE_DIR, 'results', 'gradcam_test.jpg')
         save_and_display_gradcam(img_path, heatmap, save_path)
         print(f"✅ Grad-CAM saved to {save_path}")
     else:
         print("❌ Could not find a test image to run Grad-CAM demo.")
-
