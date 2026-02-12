@@ -16,6 +16,7 @@ def make_gradcam_heatmap(img_array, model, pred_index=None):
         raise ValueError("Could not find resnet50 base layer in the model!")
 
     # Extract the classification head
+    # Assuming the structure: Input -> ResNet50 (layer 1) -> Head Layers (layer 2+)
     head_layers = model.layers[2:]
 
     # Compute Gradients
@@ -51,7 +52,7 @@ def save_and_display_gradcam(img_path, heatmap, cam_path="cam.jpg", alpha=0.4):
     # Load and CROP the original image for display to match the model input
     img = cv2.imread(img_path)
 
-    # --- CRITICAL FIX: Match the cropping used in training ---
+    # This ensures the heatmap overlays correctly on the LUNGS, not the borders
     h, w = img.shape[:2]
     crop_fraction = 0.10
     start_y = int(h * crop_fraction)
@@ -96,7 +97,7 @@ if __name__ == "__main__":
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        # --- CRITICAL FIX: APPLY SAME CROP AS TRAINING ---
+        # APPLY SAME CROP AS TRAINING ---
         h, w = img.shape[:2]
         crop_fraction = 0.10  # 10% crop
         start_y = int(h * crop_fraction)

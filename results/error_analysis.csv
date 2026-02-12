@@ -1,57 +1,88 @@
-Filename,True_Label,Predicted,Confidence,Type
-NORMAL2-IM-0135-0001.jpeg,NORMAL,PNEUMONIA,0.9910,False Positive
-NORMAL2-IM-0259-0001.jpeg,NORMAL,PNEUMONIA,0.9994,False Positive
-IM-0015-0001.jpeg,NORMAL,PNEUMONIA,0.9938,False Positive
-IM-0019-0001.jpeg,NORMAL,PNEUMONIA,0.9965,False Positive
-person35_virus_80.jpeg,PNEUMONIA,NORMAL,0.9330,False Negative
-NORMAL2-IM-0229-0001.jpeg,NORMAL,PNEUMONIA,0.9980,False Positive
-NORMAL2-IM-0302-0001.jpeg,NORMAL,PNEUMONIA,0.9909,False Positive
-IM-0110-0001.jpeg,NORMAL,PNEUMONIA,0.9942,False Positive
-NORMAL2-IM-0201-0001.jpeg,NORMAL,PNEUMONIA,0.9996,False Positive
-IM-0071-0001.jpeg,NORMAL,PNEUMONIA,0.9957,False Positive
-NORMAL2-IM-0111-0001.jpeg,NORMAL,PNEUMONIA,0.9962,False Positive
-NORMAL2-IM-0315-0001.jpeg,NORMAL,PNEUMONIA,0.9995,False Positive
-person28_virus_62.jpeg,PNEUMONIA,NORMAL,0.9821,False Negative
-NORMAL2-IM-0145-0001.jpeg,NORMAL,PNEUMONIA,0.9920,False Positive
-person88_bacteria_439.jpeg,PNEUMONIA,NORMAL,0.9638,False Negative
-IM-0091-0001.jpeg,NORMAL,PNEUMONIA,0.9917,False Positive
-person173_bacteria_831.jpeg,PNEUMONIA,NORMAL,0.9745,False Negative
-NORMAL2-IM-0232-0001.jpeg,NORMAL,PNEUMONIA,0.9979,False Positive
-NORMAL2-IM-0219-0001.jpeg,NORMAL,PNEUMONIA,0.9997,False Positive
-person117_bacteria_557.jpeg,PNEUMONIA,NORMAL,0.9546,False Negative
-person20_virus_51.jpeg,PNEUMONIA,NORMAL,0.9761,False Negative
-person49_virus_101.jpeg,PNEUMONIA,NORMAL,0.9821,False Negative
-NORMAL2-IM-0238-0001.jpeg,NORMAL,PNEUMONIA,0.9992,False Positive
-NORMAL2-IM-0246-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive
-NORMAL2-IM-0381-0001.jpeg,NORMAL,PNEUMONIA,0.9973,False Positive
-person34_virus_76.jpeg,PNEUMONIA,NORMAL,0.9535,False Negative
-NORMAL2-IM-0252-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive
-IM-0085-0001.jpeg,NORMAL,PNEUMONIA,0.9997,False Positive
-NORMAL2-IM-0117-0001.jpeg,NORMAL,PNEUMONIA,0.9970,False Positive
-NORMAL2-IM-0233-0001.jpeg,NORMAL,PNEUMONIA,0.9997,False Positive
-NORMAL2-IM-0327-0001.jpeg,NORMAL,PNEUMONIA,0.9998,False Positive
-NORMAL2-IM-0222-0001.jpeg,NORMAL,PNEUMONIA,0.9908,False Positive
-person16_virus_47.jpeg,PNEUMONIA,NORMAL,0.6989,False Negative
-NORMAL2-IM-0249-0001.jpeg,NORMAL,PNEUMONIA,0.9993,False Positive
-person21_virus_53.jpeg,PNEUMONIA,NORMAL,0.8173,False Negative
-NORMAL2-IM-0378-0001.jpeg,NORMAL,PNEUMONIA,0.9929,False Positive
-person154_bacteria_728.jpeg,PNEUMONIA,NORMAL,0.0053,False Negative
-NORMAL2-IM-0330-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive
-NORMAL2-IM-0303-0001.jpeg,NORMAL,PNEUMONIA,0.9920,False Positive
-person108_bacteria_511.jpeg,PNEUMONIA,NORMAL,0.9384,False Negative
-IM-0079-0001.jpeg,NORMAL,PNEUMONIA,0.9919,False Positive
-NORMAL2-IM-0198-0001.jpeg,NORMAL,PNEUMONIA,0.9999,False Positive
-person3_virus_17.jpeg,PNEUMONIA,NORMAL,0.9850,False Negative
-NORMAL2-IM-0210-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive
-NORMAL2-IM-0221-0001.jpeg,NORMAL,PNEUMONIA,0.9967,False Positive
-NORMAL2-IM-0362-0001.jpeg,NORMAL,PNEUMONIA,0.9981,False Positive
-NORMAL2-IM-0283-0001.jpeg,NORMAL,PNEUMONIA,0.9907,False Positive
-NORMAL2-IM-0195-0001.jpeg,NORMAL,PNEUMONIA,0.9996,False Positive
-NORMAL2-IM-0237-0001.jpeg,NORMAL,PNEUMONIA,0.9990,False Positive
-NORMAL2-IM-0338-0001.jpeg,NORMAL,PNEUMONIA,0.9997,False Positive
-NORMAL2-IM-0316-0001.jpeg,NORMAL,PNEUMONIA,0.9997,False Positive
-NORMAL2-IM-0196-0001.jpeg,NORMAL,PNEUMONIA,0.9917,False Positive
-person44_virus_94.jpeg,PNEUMONIA,NORMAL,0.7033,False Negative
-IM-0006-0001.jpeg,NORMAL,PNEUMONIA,0.9922,False Positive
-person153_bacteria_726.jpeg,PNEUMONIA,NORMAL,0.9646,False Negative
-NORMAL2-IM-0360-0001.jpeg,NORMAL,PNEUMONIA,0.9999,False Positive
+Filename,True_Label,Predicted,Prob_Pneumonia,Error_Type
+IM-0011-0001-0002.jpeg,NORMAL,PNEUMONIA,0.9955,False Positive (Healthy->Sick)
+IM-0019-0001.jpeg,NORMAL,PNEUMONIA,0.9921,False Positive (Healthy->Sick)
+IM-0022-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+IM-0036-0001.jpeg,NORMAL,PNEUMONIA,0.9640,False Positive (Healthy->Sick)
+IM-0039-0001.jpeg,NORMAL,PNEUMONIA,0.9766,False Positive (Healthy->Sick)
+IM-0065-0001.jpeg,NORMAL,PNEUMONIA,0.9686,False Positive (Healthy->Sick)
+IM-0071-0001.jpeg,NORMAL,PNEUMONIA,0.9906,False Positive (Healthy->Sick)
+IM-0073-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+IM-0075-0001.jpeg,NORMAL,PNEUMONIA,0.9988,False Positive (Healthy->Sick)
+IM-0077-0001.jpeg,NORMAL,PNEUMONIA,0.9654,False Positive (Healthy->Sick)
+IM-0079-0001.jpeg,NORMAL,PNEUMONIA,0.9947,False Positive (Healthy->Sick)
+IM-0085-0001.jpeg,NORMAL,PNEUMONIA,0.9981,False Positive (Healthy->Sick)
+IM-0091-0001.jpeg,NORMAL,PNEUMONIA,0.9802,False Positive (Healthy->Sick)
+IM-0101-0001.jpeg,NORMAL,PNEUMONIA,0.9955,False Positive (Healthy->Sick)
+IM-0102-0001.jpeg,NORMAL,PNEUMONIA,0.9912,False Positive (Healthy->Sick)
+IM-0109-0001.jpeg,NORMAL,PNEUMONIA,0.9667,False Positive (Healthy->Sick)
+IM-0110-0001.jpeg,NORMAL,PNEUMONIA,0.9988,False Positive (Healthy->Sick)
+NORMAL2-IM-0028-0001.jpeg,NORMAL,PNEUMONIA,0.9959,False Positive (Healthy->Sick)
+NORMAL2-IM-0052-0001.jpeg,NORMAL,PNEUMONIA,0.9849,False Positive (Healthy->Sick)
+NORMAL2-IM-0072-0001.jpeg,NORMAL,PNEUMONIA,0.9920,False Positive (Healthy->Sick)
+NORMAL2-IM-0073-0001.jpeg,NORMAL,PNEUMONIA,0.9812,False Positive (Healthy->Sick)
+NORMAL2-IM-0095-0001.jpeg,NORMAL,PNEUMONIA,0.9675,False Positive (Healthy->Sick)
+NORMAL2-IM-0096-0001.jpeg,NORMAL,PNEUMONIA,0.9675,False Positive (Healthy->Sick)
+NORMAL2-IM-0102-0001.jpeg,NORMAL,PNEUMONIA,0.9685,False Positive (Healthy->Sick)
+NORMAL2-IM-0105-0001.jpeg,NORMAL,PNEUMONIA,0.9859,False Positive (Healthy->Sick)
+NORMAL2-IM-0111-0001.jpeg,NORMAL,PNEUMONIA,0.9996,False Positive (Healthy->Sick)
+NORMAL2-IM-0123-0001.jpeg,NORMAL,PNEUMONIA,0.9622,False Positive (Healthy->Sick)
+NORMAL2-IM-0145-0001.jpeg,NORMAL,PNEUMONIA,0.9986,False Positive (Healthy->Sick)
+NORMAL2-IM-0150-0001.jpeg,NORMAL,PNEUMONIA,0.9870,False Positive (Healthy->Sick)
+NORMAL2-IM-0173-0001-0001.jpeg,NORMAL,PNEUMONIA,0.9553,False Positive (Healthy->Sick)
+NORMAL2-IM-0173-0001-0002.jpeg,NORMAL,PNEUMONIA,0.9553,False Positive (Healthy->Sick)
+NORMAL2-IM-0195-0001.jpeg,NORMAL,PNEUMONIA,0.9999,False Positive (Healthy->Sick)
+NORMAL2-IM-0198-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+NORMAL2-IM-0199-0001.jpeg,NORMAL,PNEUMONIA,0.9750,False Positive (Healthy->Sick)
+NORMAL2-IM-0201-0001.jpeg,NORMAL,PNEUMONIA,0.9984,False Positive (Healthy->Sick)
+NORMAL2-IM-0206-0001.jpeg,NORMAL,PNEUMONIA,0.9998,False Positive (Healthy->Sick)
+NORMAL2-IM-0210-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+NORMAL2-IM-0217-0001.jpeg,NORMAL,PNEUMONIA,0.9922,False Positive (Healthy->Sick)
+NORMAL2-IM-0219-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+NORMAL2-IM-0221-0001.jpeg,NORMAL,PNEUMONIA,0.9934,False Positive (Healthy->Sick)
+NORMAL2-IM-0222-0001.jpeg,NORMAL,PNEUMONIA,0.9993,False Positive (Healthy->Sick)
+NORMAL2-IM-0229-0001.jpeg,NORMAL,PNEUMONIA,0.9956,False Positive (Healthy->Sick)
+NORMAL2-IM-0232-0001.jpeg,NORMAL,PNEUMONIA,0.9999,False Positive (Healthy->Sick)
+NORMAL2-IM-0233-0001.jpeg,NORMAL,PNEUMONIA,0.9999,False Positive (Healthy->Sick)
+NORMAL2-IM-0237-0001.jpeg,NORMAL,PNEUMONIA,0.9989,False Positive (Healthy->Sick)
+NORMAL2-IM-0238-0001.jpeg,NORMAL,PNEUMONIA,0.9996,False Positive (Healthy->Sick)
+NORMAL2-IM-0241-0001.jpeg,NORMAL,PNEUMONIA,0.9887,False Positive (Healthy->Sick)
+NORMAL2-IM-0246-0001-0001.jpeg,NORMAL,PNEUMONIA,0.9822,False Positive (Healthy->Sick)
+NORMAL2-IM-0246-0001-0002.jpeg,NORMAL,PNEUMONIA,0.9822,False Positive (Healthy->Sick)
+NORMAL2-IM-0246-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+NORMAL2-IM-0249-0001.jpeg,NORMAL,PNEUMONIA,0.9992,False Positive (Healthy->Sick)
+NORMAL2-IM-0251-0001.jpeg,NORMAL,PNEUMONIA,0.9597,False Positive (Healthy->Sick)
+NORMAL2-IM-0252-0001.jpeg,NORMAL,PNEUMONIA,0.9999,False Positive (Healthy->Sick)
+NORMAL2-IM-0256-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+NORMAL2-IM-0259-0001.jpeg,NORMAL,PNEUMONIA,0.9980,False Positive (Healthy->Sick)
+NORMAL2-IM-0267-0001.jpeg,NORMAL,PNEUMONIA,0.9953,False Positive (Healthy->Sick)
+NORMAL2-IM-0277-0001.jpeg,NORMAL,PNEUMONIA,0.9818,False Positive (Healthy->Sick)
+NORMAL2-IM-0282-0001.jpeg,NORMAL,PNEUMONIA,0.9546,False Positive (Healthy->Sick)
+NORMAL2-IM-0283-0001.jpeg,NORMAL,PNEUMONIA,0.9993,False Positive (Healthy->Sick)
+NORMAL2-IM-0285-0001.jpeg,NORMAL,PNEUMONIA,0.9975,False Positive (Healthy->Sick)
+NORMAL2-IM-0302-0001.jpeg,NORMAL,PNEUMONIA,0.9867,False Positive (Healthy->Sick)
+NORMAL2-IM-0303-0001.jpeg,NORMAL,PNEUMONIA,0.9712,False Positive (Healthy->Sick)
+NORMAL2-IM-0315-0001.jpeg,NORMAL,PNEUMONIA,0.9995,False Positive (Healthy->Sick)
+NORMAL2-IM-0322-0001.jpeg,NORMAL,PNEUMONIA,0.9973,False Positive (Healthy->Sick)
+NORMAL2-IM-0327-0001.jpeg,NORMAL,PNEUMONIA,0.9976,False Positive (Healthy->Sick)
+NORMAL2-IM-0330-0001.jpeg,NORMAL,PNEUMONIA,0.9995,False Positive (Healthy->Sick)
+NORMAL2-IM-0338-0001.jpeg,NORMAL,PNEUMONIA,0.9976,False Positive (Healthy->Sick)
+NORMAL2-IM-0340-0001.jpeg,NORMAL,PNEUMONIA,0.9942,False Positive (Healthy->Sick)
+NORMAL2-IM-0349-0001.jpeg,NORMAL,PNEUMONIA,1.0000,False Positive (Healthy->Sick)
+NORMAL2-IM-0353-0001.jpeg,NORMAL,PNEUMONIA,0.9575,False Positive (Healthy->Sick)
+NORMAL2-IM-0359-0001.jpeg,NORMAL,PNEUMONIA,0.9510,False Positive (Healthy->Sick)
+NORMAL2-IM-0360-0001.jpeg,NORMAL,PNEUMONIA,0.9992,False Positive (Healthy->Sick)
+NORMAL2-IM-0361-0001.jpeg,NORMAL,PNEUMONIA,0.9668,False Positive (Healthy->Sick)
+NORMAL2-IM-0362-0001.jpeg,NORMAL,PNEUMONIA,0.9917,False Positive (Healthy->Sick)
+NORMAL2-IM-0364-0001.jpeg,NORMAL,PNEUMONIA,0.9917,False Positive (Healthy->Sick)
+NORMAL2-IM-0366-0001.jpeg,NORMAL,PNEUMONIA,0.9944,False Positive (Healthy->Sick)
+NORMAL2-IM-0368-0001.jpeg,NORMAL,PNEUMONIA,0.9908,False Positive (Healthy->Sick)
+NORMAL2-IM-0369-0001.jpeg,NORMAL,PNEUMONIA,0.9634,False Positive (Healthy->Sick)
+NORMAL2-IM-0373-0001.jpeg,NORMAL,PNEUMONIA,0.9930,False Positive (Healthy->Sick)
+NORMAL2-IM-0374-0001-0002.jpeg,NORMAL,PNEUMONIA,0.9992,False Positive (Healthy->Sick)
+NORMAL2-IM-0376-0001.jpeg,NORMAL,PNEUMONIA,0.9949,False Positive (Healthy->Sick)
+NORMAL2-IM-0378-0001.jpeg,NORMAL,PNEUMONIA,0.9741,False Positive (Healthy->Sick)
+person153_bacteria_726.jpeg,PNEUMONIA,NORMAL,0.9483,False Negative (Sick->Healthy)
+person154_bacteria_728.jpeg,PNEUMONIA,NORMAL,0.0077,False Negative (Sick->Healthy)
+person1674_virus_2890.jpeg,PNEUMONIA,NORMAL,0.9446,False Negative (Sick->Healthy)
+person173_bacteria_831.jpeg,PNEUMONIA,NORMAL,0.7752,False Negative (Sick->Healthy)
+person88_bacteria_439.jpeg,PNEUMONIA,NORMAL,0.7209,False Negative (Sick->Healthy)
