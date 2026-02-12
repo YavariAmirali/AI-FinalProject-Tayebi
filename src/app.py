@@ -48,6 +48,8 @@ def process_image_for_model(pil_image):
 
     return img_cropped, img_batch
 
+    # Convert to float and Normalize
+    img_normalized = img_array.astype(np.float32) / 255.0
 
 def find_last_conv_layer(model):
     """
@@ -66,6 +68,8 @@ def find_last_conv_layer(model):
 
     raise ValueError("Could not auto-detect a Convolutional layer. Please specify 'last_conv_layer_name'.")
 
+    if "resnet" in model.name.lower(): return "conv5_block3_out"
+    if "vgg" in model.name.lower(): return "block5_conv3"
 
 def make_gradcam_heatmap(img_array, model, last_conv_layer_name=None):
     """
