@@ -104,7 +104,7 @@ def evaluate_model():
     filepaths_test = filepaths_all[idx_test]
 
     # Find the Optimal Threshold ONLY on the 20% Calibration Data
-    optimal_thresh = find_optimal_threshold(y_true_calib, probs_fine_calib, target_recall=0.96)
+    optimal_thresh = find_optimal_threshold(y_true_calib, probs_fine_calib, target_recall=0.95)
 
     # Evaluate BOTH models on the 80% Unseen Test Data using the optimal threshold
     print(

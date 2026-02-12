@@ -82,6 +82,16 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+            h, w = img.shape[:2]
+            crop_fraction = 0.10
+
+            start_y = int(h * crop_fraction)
+            end_y = int(h * (1 - crop_fraction))
+            start_x = int(w * crop_fraction)
+            end_x = int(w * (1 - crop_fraction))
+
+            img = img[start_y:end_y, start_x:end_x]
+
             if self.augment:
                 img = self.augmentation(image=img)["image"]
             else:
@@ -94,7 +104,6 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
             batch_labels.append(label)
 
         return np.array(images), np.array(batch_labels)
-
     def get_labels(self):
         return self.labels
 
