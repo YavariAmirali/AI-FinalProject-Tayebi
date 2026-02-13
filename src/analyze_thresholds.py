@@ -13,20 +13,19 @@ RESULTS_DIR = os.path.join(BASE_DIR, 'results')
 
 
 def analyze_thresholds():
-    print("🚀 Starting Threshold Analysis on Validation Data...")
+    print("🚀 Starting Threshold Analysis on TE Data...")
 
     # Load TEST Data instead of Validation Data
     _, _, test_gen = get_data_loaders(DATA_DIR, batch_size=BATCH_SIZE)
     y_true = np.array(test_gen.get_labels())
 
-    # Also update the print statement on line 30 to say "Test Set" instead of "Validation Set"
     print(f"   Running predictions on Test Set...")
 
     if not os.path.exists(MODEL_FINETUNED_PATH):
         print(f"❌ Error: Fine-tuned model not found at {MODEL_FINETUNED_PATH}")
         return
 
-    # 2. Load Model & Predict ONCE (to save time)
+    # Load Model & Predict ONCE (to save time)
     print(f"\n📊 Loading Fine-Tuned Model...")
     model = tf.keras.models.load_model(MODEL_FINETUNED_PATH)
 
@@ -34,8 +33,8 @@ def analyze_thresholds():
     predictions = model.predict(test_gen, verbose=1)
     y_pred_probs = predictions.flatten()
 
-    # 3. Sweep Thresholds (0.50 to 0.95 with step 0.05)
-    thresholds = np.arange(0.95, 1.00, 0.005)
+    # Sweep Thresholds (0.50 to 0.95 with step 0.05)
+    thresholds = np.arange(0.5, 1.00, 0.05)
     recalls = []
     specificities = []
 
@@ -55,7 +54,7 @@ def analyze_thresholds():
             tn, fp, fn, tp = cm.ravel()
             specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
         else:
-            specificity = 0  # Fallback if one class is missing
+            specificity = 0
 
         recalls.append(recall)
         specificities.append(specificity)
@@ -71,7 +70,6 @@ def analyze_thresholds():
     plt.plot(thresholds, recalls, marker='o', label='Recall (Sensitivity)', color='blue', linewidth=2)
     plt.plot(thresholds, specificities, marker='s', label='Specificity (TN Rate)', color='green', linewidth=2)
 
-    # Add a visual reference line for your project's requirement
     plt.axhline(y=0.95, color='red', linestyle='--', alpha=0.5, label='Project Minimum Recall (0.95)')
 
     # Formatting

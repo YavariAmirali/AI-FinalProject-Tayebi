@@ -4,7 +4,7 @@ import albumentations as A
 import cv2
 import os
 from tensorflow.keras.applications.resnet50 import preprocess_input
-
+from utils import crop_center_10_percent
 
 class MedicalDataGenerator(tf.keras.utils.Sequence):
     def __init__(
@@ -82,6 +82,8 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+            img = crop_center_10_percent(img)
+
             if self.augment:
                 img = self.augmentation(image=img)["image"]
             else:
@@ -94,7 +96,6 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
             batch_labels.append(label)
 
         return np.array(images), np.array(batch_labels)
-
     def get_labels(self):
         return self.labels
 

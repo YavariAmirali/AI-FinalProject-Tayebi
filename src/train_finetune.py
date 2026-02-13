@@ -11,13 +11,13 @@ from data_loader import get_data_loaders, DATA_DIR
 
 # --- CONFIGURATION FOR FINE-TUNING ---
 BATCH_SIZE = 32
-EPOCHS = 10  # Fewer epochs for fine-tuning [cite: 453]
+EPOCHS = 15 
 FINE_TUNE_LR = 1e-5  # CRITICAL: Very low learning rate
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOAD_MODEL_PATH = os.path.join(BASE_DIR, 'models', 'best_resnet_model.h5')
-SAVE_MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5') # New name [cite: 453]
+SAVE_MODEL_PATH = os.path.join(BASE_DIR, 'models', 'finetuned_resnet.h5')
 LOG_DIR = os.path.join(BASE_DIR, 'logs', 'finetune_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
 def run_fine_tuning():
@@ -52,9 +52,9 @@ def run_fine_tuning():
     model = model_builder.unfreeze_model(model, num_layers_to_unfreeze=30)
 
     # Re-compile with LOW Learning Rate
-    print(f"[Model] Re-compiling with Learning Rate = 1e-5")
+    print(f"[Model] Re-compiling with Learning Rate = {FINE_TUNE_LR}")
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),  # Keep this low!
+        optimizer=tf.keras.optimizers.Adam(learning_rate=FINE_TUNE_LR),
         loss='binary_crossentropy',
         metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
     )
@@ -63,7 +63,10 @@ def run_fine_tuning():
     callbacks = [
         EarlyStopping(patience=5, monitor='val_loss', restore_best_weights=True, verbose=1),
         ModelCheckpoint(SAVE_MODEL_PATH, save_best_only=True, monitor='val_loss', verbose=1),
-        TensorBoard(log_dir=LOG_DIR, histogram_freq=1)
+        TensorBoard(log_dir=LOG_DIR, histogram_freq=1),
+        
+        # Factor=0.2: If stuck, drops LR from 1e-5 -> 2e-6
+        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=1e-7, verbose=1)
     ]
 
     # Train (Fine-Tune)
@@ -76,10 +79,11 @@ def run_fine_tuning():
         callbacks=callbacks
     )
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print(f"✅ Fine-Tuning Complete!")
     print(f"✅ New Model Saved to: {SAVE_MODEL_PATH}")
-    print("="*50)
+    print("=" * 50)
+
 
 if __name__ == "__main__":
     run_fine_tuning()
