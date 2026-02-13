@@ -2,10 +2,9 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import cv2
-from PIL import Image
+from PIL import Image, ImageOps
 import os
 import pydicom
-from tensorflow.keras.applications.resnet50 import preprocess_input
 
 # --------------------------------------------------------------------------
 # 1. CONFIGURATION
@@ -14,7 +13,7 @@ st.set_page_config(page_title="Pneumonia Detection AI", page_icon="🫁", layout
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
-MODEL_PATH = os.path.join(project_root, 'models', 'finetuned_resnet.h5')
+MODEL_PATH = os.path.join(project_root, 'models', 'best_resnet_model_v2.h5')
 
 
 # --------------------------------------------------------------------------
@@ -22,188 +21,224 @@ MODEL_PATH = os.path.join(project_root, 'models', 'finetuned_resnet.h5')
 # --------------------------------------------------------------------------
 
 def process_image_for_model(pil_image):
-    """
-    Prepares the image exactly as the model saw it during training.
-    """
-    # Convert PIL to Numpy Array
-    img_array = np.array(pil_image)
+    width, height = pil_image.size
+    new_size = min(width, height)
+    left = (width - new_size) / 2
+    top = (height - new_size) / 2
+    right = (width + new_size) / 2
+    bottom = (height + new_size) / 2
+
+    img_cropped = pil_image.crop((left, top, right, bottom))
+
+    # 2. Resize
+    img_resized = img_cropped.resize((224, 224))
+
+    # 3. Convert to Array & Normalize (CRITICAL FIX: Divide by 255.0 only)
+    img_array = np.array(img_resized)
 
     # Ensure 3 channels (RGB)
     if len(img_array.shape) == 2:
         img_array = np.stack((img_array,) * 3, axis=-1)
-    if img_array.shape[-1] == 4:  # Drop Alpha channel if PNG
-        img_array = img_array[..., :3]
 
-    # 10% Border Crop (Mitigate Shortcut Learning)
-    # This removes hospital markers/text that confuse the model
-    h, w = img_array.shape[:2]
-    crop_fraction = 0.10
-    start_y = int(h * crop_fraction)
-    end_y = int(h * (1 - crop_fraction))
-    start_x = int(w * crop_fraction)
-    end_x = int(w * (1 - crop_fraction))
+    # Convert to float and Normalize
+    img_normalized = img_array.astype(np.float32) / 255.0
 
-    img_cropped = img_array[start_y:end_y, start_x:end_x]
+    # Add batch dimension
+    img_batch = np.expand_dims(img_normalized, axis=0)
 
-    # Resize to 224x224 (ResNet Standard)
-    img_resized = cv2.resize(img_cropped, (224, 224))
-
-    # ResNet Specific Preprocessing (Zero-centers the data)
-    # Note: Do NOT divide by 255.0 manually; this function handles scaling.
-    img_preprocessed = preprocess_input(img_resized.copy())
-
-    # Add Batch Dimension
-    img_batch = np.expand_dims(img_preprocessed, axis=0)
-
-    # Return display image (cropped) and model input
-    img_display = Image.fromarray(img_resized.astype('uint8'))
-    return img_display, img_batch
+    return img_cropped, img_batch
 
 
-def make_gradcam_heatmap(img_array, model):
+def find_last_conv_layer(model):
     """
-    Robust Grad-CAM generator for Nested ResNet Models.
-    Fixes 'Invalid reduction dimension' error.
+    Search for the last convolutional layer in the model automatically.
+    Works for both Simple CNN and ResNet/VGG.
     """
-    # 1. Find the ResNet backbone layer inside the model
-    backbone = None
-    backbone_idx = 0
-    for idx, layer in enumerate(model.layers):
-        if "resnet50" in layer.name:
-            backbone = layer
-            backbone_idx = idx
-            break
+    for layer in reversed(model.layers):
+        if isinstance(layer, tf.keras.layers.Conv2D):
+            return layer.name
 
-    if backbone is None:
+        if isinstance(layer, tf.keras.Model):
+            return find_last_conv_layer(layer)
+
+    if "resnet" in model.name.lower(): return "conv5_block3_out"
+    if "vgg" in model.name.lower(): return "block5_conv3"
+
+    raise ValueError("Could not auto-detect a Convolutional layer. Please specify 'last_conv_layer_name'.")
+
+
+def make_gradcam_heatmap(img_array, model, last_conv_layer_name=None):
+    """
+    Generates Grad-CAM heatmap for ANY model (Universal Version).
+    """
+    # 1. Auto-detect the target layer if not provided
+    if last_conv_layer_name is None:
+        try:
+            last_conv_layer_name = find_last_conv_layer(model)
+            # print(f"DEBUG: Using layer '{last_conv_layer_name}' for Grad-CAM") # Uncomment for debugging
+        except ValueError as e:
+            st.error(f"Grad-CAM Error: {e}")
+            return None
+
+    # 2. Create Grad-Model (Safe Method)
+    # Instead of reconstructing the model manually, we access the layer directly.
+    # This avoids the "Graph Disconnected" and "Rank 2 vs Rank 4" errors.
+    try:
+        last_conv_layer = model.get_layer(last_conv_layer_name)
+        grad_model = tf.keras.models.Model(
+            inputs=[model.inputs],
+            outputs=[last_conv_layer.output, model.output]
+        )
+    except Exception as e:
+        # If accessing by name fails (e.g. nested model), usually passing the layer object works
+        st.warning(f"Complex model structure detected. Grad-CAM might vary. Error: {e}")
         return None
-
-    # 2. Identify Head Layers (Everything after the backbone)
-    head_layers = model.layers[backbone_idx + 1:]
 
     # 3. Compute Gradients
     with tf.GradientTape() as tape:
-        # Get feature maps from the backbone (4D tensor)
-        conv_outputs = backbone(img_array)
-        tape.watch(conv_outputs)
+        last_conv_layer_output, preds = grad_model(img_array)
 
-        # Pass features through the rest of the model (Head)
-        x = conv_outputs
-        for layer in head_layers:
-            x = layer(x)
-        preds = x
-
-        class_channel = preds[:, 0]
+        # Handle binary vs multi-class output
+        if preds.shape[-1] == 1:
+            # Binary classification (Sigmoid)
+            class_channel = preds[0][0]
+        else:
+            # Multi-class (Softmax) - take the winning class
+            pred_index = tf.argmax(preds[0])
+            class_channel = preds[:, pred_index]
 
     # 4. Process Gradients
-    grads = tape.gradient(class_channel, conv_outputs)
+    grads = tape.gradient(class_channel, last_conv_layer_output)
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    last_conv_layer_output = last_conv_layer_output[0]
 
-    # Weight the feature maps
-    conv_outputs = conv_outputs[0]
-    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
+    # 5. Generate Heatmap
+    heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
     heatmap = tf.squeeze(heatmap)
 
-    # ReLU and Normalize
-    heatmap = tf.maximum(heatmap, 0)
-    if tf.math.reduce_max(heatmap) > 0:
-        heatmap /= tf.math.reduce_max(heatmap)
-
+    # Normalize
+    heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-10)
     return heatmap.numpy()
 
 
 def apply_heatmap_overlay(original_img_pil, heatmap, alpha=0.4):
     """
-    Overlays heatmap on image.
-    CRITICAL FIX: Converts OpenCV BGR to RGB to prevent weird colors.
+    Overlays heatmap on image with CORRECT colors (Red=Hot).
     """
     img = np.array(original_img_pil)
+    # Ensure RGB
+    if len(img.shape) == 2: img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
 
-    # Resize heatmap to match image size
     heatmap = np.uint8(255 * heatmap)
     heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
+    heatmap_color = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
 
-    # Apply JET colormap (Returns BGR)
-    heatmap_bgr = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-    # --- FIX: Convert BGR to RGB ---
-    heatmap_rgb = cv2.cvtColor(heatmap_bgr, cv2.COLOR_BGR2RGB)
-
-    # Superimpose
-    superimposed_img = heatmap_rgb * alpha + img * (1 - alpha)
-    return np.clip(superimposed_img, 0, 255).astype(np.uint8)
+    superimposed_img = heatmap_color * alpha + img * (1 - alpha)
+    superimposed_img = np.clip(superimposed_img, 0, 255).astype(np.uint8)
+    return superimposed_img
 
 
 @st.cache_resource
 def load_prediction_model():
     if not os.path.exists(MODEL_PATH):
-        st.error(f"Model not found at {MODEL_PATH}")
         return None
     return tf.keras.models.load_model(MODEL_PATH)
 
 
 # --------------------------------------------------------------------------
-# 3. UI LOGIC
+# 3. UI
 # --------------------------------------------------------------------------
 model = load_prediction_model()
 
 st.sidebar.title("Settings")
-uploaded_file = st.sidebar.file_uploader("Upload X-Ray (JPG/PNG/DICOM)", type=["jpg", "png", "jpeg", "dcm"])
+uploaded_file = st.sidebar.file_uploader("Upload X-Ray", type=["jpg", "png", "jpeg", "dcm"])
+threshold = 0.95
 
-# --- SLIDER (Max set to 0.99 as requested) ---
-threshold = st.sidebar.slider("Confidence Threshold", 0.0, 0.99, 0.50)
-
-st.title("🫁 Intelligent Pneumonia Detection System")
+st.title("🫁 Intelligent Pneumonia Detection")
 
 if uploaded_file and model:
-    # --- DICOM & IMAGE LOADING ---
+    # --- 1. Load Image & Extract DICOM Metadata ---
     if uploaded_file.name.lower().endswith('.dcm'):
         ds = pydicom.dcmread(uploaded_file)
         pixel_array = ds.pixel_array
 
-        # Normalize DICOM (16-bit to 8-bit for display)
+        # Normalize DICOM to 0-255 for display
         pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255.0
         pil_image = Image.fromarray(pixel_array.astype('uint8')).convert('RGB')
 
-        st.sidebar.success("✅ DICOM Metadata Extracted")
-        with st.sidebar.expander("Patient Details"):
-            st.write(f"ID: {getattr(ds, 'PatientID', 'N/A')}")
-            st.write(f"Sex: {getattr(ds, 'PatientSex', 'N/A')}")
-            st.write(f"Modality: {getattr(ds, 'Modality', 'N/A')}")
-    else:
-        pil_image = Image.open(uploaded_file).convert('RGB')
+        # --- Enhanced DICOM Sidebar Info ---
+        st.sidebar.markdown("## 📋 DICOM Metadata")
 
-    # --- PROCESS & PREDICT ---
+
+        # Helper function to safely get DICOM tags
+        def get_dcm_tag(tag, default="N/A"):
+            val = getattr(ds, tag, default)
+            return str(val) if val else default
+
+
+        # Group 1: Patient Information
+        with st.sidebar.expander("👤 Patient Information", expanded=True):
+            st.markdown(f"**Name:** {get_dcm_tag('PatientName')}")
+            st.markdown(f"**ID:** {get_dcm_tag('PatientID')}")
+            st.markdown(f"**Sex:** {get_dcm_tag('PatientSex')}")
+            st.markdown(f"**Age:** {get_dcm_tag('PatientAge')}")
+            st.markdown(f"**Birth Date:** {get_dcm_tag('PatientBirthDate')}")
+
+        # Group 2: Study/Scan Information
+        with st.sidebar.expander("☢️ Scan Details", expanded=True):
+            st.markdown(f"**Modality:** {get_dcm_tag('Modality')}")
+            st.markdown(f"**Body Part:** {get_dcm_tag('BodyPartExamined')}")
+            st.markdown(f"**View Position:** {get_dcm_tag('ViewPosition')}") # e.g., PA or AP
+            st.markdown(f"**Study Date:** {get_dcm_tag('StudyDate')}")
+            st.markdown(f"**Description:** {get_dcm_tag('StudyDescription')}")
+
+        # Group 3: Image Technicals
+        with st.sidebar.expander("⚙️ Technical Specs", expanded=False):
+            st.markdown(f"**Rows/Cols:** {ds.Rows} x {ds.Columns}")
+            st.markdown(f"**Photometric:** {get_dcm_tag('PhotometricInterpretation')}")
+
+    else:
+        # Standard Image (JPG/PNG)
+        pil_image = Image.open(uploaded_file).convert('RGB')
+        st.sidebar.info("Standard Image Format (No DICOM tags available)")
+
+    # --- 2. Process (Crop & Preprocess) ---
+    # This function handles the Center Crop and normalization
     img_display, img_batch = process_image_for_model(pil_image)
 
+    # --- 3. Predict ---
     preds = model.predict(img_batch)
     score = preds[0][0]
 
-    # --- GRAD-CAM ---
+    # --- 4. Grad-CAM ---
     heatmap = make_gradcam_heatmap(img_batch, model)
 
-    if heatmap is not None:
-        overlay = apply_heatmap_overlay(img_display, heatmap)
-    else:
-        st.warning("Could not generate heatmap.")
-        overlay = np.array(img_display)
-
-    # --- DISPLAY RESULTS ---
+    # --- 5. Display ---
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Analyzed Region")
-        st.image(img_display, caption="Cropped Input (Grayscale)", use_column_width=True)
+        st.subheader("Processed Input")
+        st.image(img_display, caption="Center Cropped (Input to Model)", use_column_width=True)
+
     with col2:
         st.subheader("AI Attention Map")
-        st.image(overlay, caption="Red = Suspicious Areas", use_column_width=True)
+        if heatmap is not None:
+            overlay = apply_heatmap_overlay(img_display, heatmap)
+            st.image(overlay, caption="Red = High Attention", use_column_width=True)
+        else:
+            st.warning("Could not generate heatmap.")
 
-    # --- DIAGNOSIS ---
+    # --- 6. Diagnosis Box ---
     is_pneumonia = score > threshold
-    label = "PNEUMONIA DETECTED" if is_pneumonia else "NORMAL"
-    color = "#ff4b4b" if is_pneumonia else "#09ab3b"
+    label = "PNEUMONIA" if is_pneumonia else "NORMAL"
+    color = "#ff4b4b" if is_pneumonia else "#09ab3b" # Red vs Green
 
     st.markdown(f"""
-    <div style="background-color:{color}20; border: 2px solid {color}; padding: 20px; border-radius: 10px; text-align: center; margin-top: 20px;">
-        <h2 style="color:{color}; margin:0;">{label}</h2>
-        <p style="margin-top:10px; font-size:18px;">Confidence: <b>{score:.2%}</b></p>
+    <div style="background-color:{color}20; padding:20px; border-radius:10px; border: 2px solid {color}; text-align:center; margin-top:20px;">
+        <h1 style="color:{color}; margin:0;">{label}</h1>
+        <h3 style="margin:10px 0; color: #333;">Confidence: {score:.4f}</h3>
+        <p style="color: #666;">Threshold: {threshold}</p>
     </div>
     """, unsafe_allow_html=True)
+
+
+
