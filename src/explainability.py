@@ -47,7 +47,7 @@ def make_gradcam_heatmap(img_array, model, pred_index=None):
 
 def load_and_preprocess_image(img_path):
 
-    # 1. Load Image
+    # Load Image
     if img_path.lower().endswith('.dcm'):
         ds = pydicom.dcmread(img_path)
         img = ds.pixel_array

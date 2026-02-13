@@ -98,7 +98,7 @@ threshold = st.sidebar.slider("Confidence Threshold", 0.0, 0.99, 0.99)
 st.title("🫁 Intelligent Pneumonia Detection System")
 
 if uploaded_file and model:
-    # --- 1. LOAD IMAGE ---
+    # LOAD IMAGE ---
     if uploaded_file.name.lower().endswith('.dcm'):
         img_array, metadata = load_dicom_file(uploaded_file)
         st.sidebar.success("✅ DICOM Metadata Extracted")
@@ -109,15 +109,15 @@ if uploaded_file and model:
         pil_image = Image.open(uploaded_file).convert('RGB')
         img_array = np.array(pil_image)
 
-    # --- 2. PREPROCESS ---
+    # PREPROCESS ---
     # Now using the unified logic that matches explainability.py
     img_display, img_batch = preprocess_image(img_array)
 
-    # --- 3. PREDICT ---
+    # PREDICT ---
     preds = model.predict(img_batch)
     score = preds[0][0]
 
-    # --- 4. EXPLAIN (Grad-CAM) ---
+    # EXPLAIN (Grad-CAM) ---
     heatmap = make_gradcam_heatmap(img_batch, model)
 
     if heatmap is not None:
@@ -126,7 +126,7 @@ if uploaded_file and model:
         st.warning("Could not generate heatmap.")
         overlay = img_display
 
-    # --- 5. DISPLAY RESULTS ---
+    # DISPLAY RESULTS ---
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Analyzed Region")
@@ -135,7 +135,7 @@ if uploaded_file and model:
         st.subheader("AI Attention Map")
         st.image(overlay, caption="Red = Suspicious Areas", use_column_width=True)
 
-    # --- 6. DIAGNOSIS BOX ---
+    # DIAGNOSIS BOX ---
     is_pneumonia = score > threshold
     label = "PNEUMONIA DETECTED" if is_pneumonia else "NORMAL"
     color = "#ff4b4b" if is_pneumonia else "#09ab3b"

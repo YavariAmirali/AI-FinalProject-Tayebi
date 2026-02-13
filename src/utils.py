@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def crop_center_10_percent(img):
     """
     Centralized function for the critical 10% crop.
