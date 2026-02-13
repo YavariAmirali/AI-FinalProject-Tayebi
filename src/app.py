@@ -63,7 +63,6 @@ def process_image_for_model(pil_image):
 def make_gradcam_heatmap(img_array, model):
     """
     Robust Grad-CAM generator for Nested ResNet Models.
-    Fixes 'Invalid reduction dimension' error.
     """
     # 1. Find the ResNet backbone layer inside the model
     backbone = None
