@@ -88,8 +88,8 @@ def train_model(epochs=20, batch_size=32):
         epochs=epochs,
         validation_data=val_gen,
         class_weight=class_weights,
-        callbacks=callbacks,
-        varbose = 1
+        callbacks=callbacks_list,
+        varbose=1
     )
 
     wandb.finish()
