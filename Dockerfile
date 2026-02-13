@@ -1,20 +1,25 @@
 # استفاده از نسخه سبک پایتون
 FROM python:3.9-slim
 
-# تنظیم دایرکتوری کاری داخل کانتینر
+# جلوگیری از نوشتن فایل‌های pyc و بافر شدن خروجی‌ها (برای لاگ بهتر)
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# کپی کردن فایل نیازمندی‌ها و نصب آن‌ها
-COPY requirements.txt .
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# نصب کتابخانه‌های مورد نیاز (بدون ذخیره کش برای کاهش حجم)
+# کپی و نصب نیازمندی‌ها
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# کپی کردن کل فایل‌های پروژه به داخل کانتینر
-COPY . .
+COPY src/ src/
+COPY models/ models/
 
-# باز کردن پورت پیش‌فرض Streamlit
 EXPOSE 8501
 
-# دستور اجرای برنامه دمو طبق سند
+# اجرای برنامه
 CMD ["streamlit", "run", "src/app.py", "--server.address=0.0.0.0"]
