@@ -11,16 +11,16 @@ from tensorflow.keras.callbacks import (
 from sklearn.utils import class_weight
 from data_loader import get_data_loaders, DATA_DIR
 from model_builder import build_resnet50_model
-
 import wandb
 from wandb.integration.keras import WandbCallback
 import argparse
 
 # --- CONFIGURATION ---
 IMG_SIZE = (224, 224)
-BATCH_SIZE = 32
-EPOCHS = 20
-LEARNING_RATE = 1e-3  # Standard LR for frozen training
+DEFAULT_BATCH_SIZE = 32
+DEFAULT_EPOCHS = 20
+LEARNING_RATE = 1e-3
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, 'models')
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
@@ -28,33 +28,27 @@ LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
 
-
-def train_model(epochs=20, batch_size=32):
-    wandb.init(
-        project="pneumonia-detection-phase2",
-        config={
-            "learning_rate": LEARNING_RATE,
-            "epochs": EPOCHS,
-            "batch_size": BATCH_SIZE,
-            "architecture": "ResNet50_Frozen"
-        }
-    )
-
+def train_model(epochs, batch_size, use_wandb):
+    # Loading Data
     print("🚀 Loading Data...")
-    train_gen, val_gen, _ = get_data_loaders(DATA_DIR, batch_size=BATCH_SIZE)
+    train_gen, val_gen, _ = get_data_loaders(DATA_DIR, batch_size=batch_size)
 
-    # Calculate Class Weights
+    # Calculating Class Weights
     print("⚖️ Calculating Class Weights...")
-    train_labels = train_gen.get_labels()
-    class_weights = class_weight.compute_class_weight(
+    try:
+        train_labels = train_gen.labels
+    except AttributeError:
+        train_labels = train_gen.get_labels()
+        
+    class_weights_array = class_weight.compute_class_weight(
         class_weight='balanced',
         classes=np.unique(train_labels),
         y=train_labels
     )
-    class_weight_dict = dict(enumerate(class_weights))
-    print(f" Class Weights: {class_weight_dict}")
+    class_weight_dict = dict(enumerate(class_weights_array))
+    print(f" Class Weights Dictionary: {class_weight_dict}")
 
-    # Build Model using model_builder.py
+    # Build Model
     print("🧠 Building Frozen Model...")
     model = build_resnet50_model(input_shape=IMG_SIZE + (3,))
 
@@ -64,7 +58,7 @@ def train_model(epochs=20, batch_size=32):
         metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
     )
 
-    # Model Checkpoint -> SAVING AS best_resnet_model.h5
+    # Callbacks
     checkpoint = ModelCheckpoint(
         os.path.join(MODELS_DIR, 'best_resnet_model.h5'),
         monitor='val_loss',
@@ -72,14 +66,15 @@ def train_model(epochs=20, batch_size=32):
         mode='min',
         verbose=1
     )
-
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=1e-6)
-    tensorboard_callback = TensorBoard(log_dir=LOGS_DIR, histogram_freq=1)
     csv_logger = CSVLogger(os.path.join(LOGS_DIR, 'training_log.csv'), append=True)
-    wandb_callback = WandbCallback(save_model=False, monitor='val_loss', mode='min')
+    
+    callbacks_list = [checkpoint, early_stopping, reduce_lr, csv_logger]
 
-    callbacks_list = [checkpoint, early_stopping, reduce_lr, tensorboard_callback, csv_logger, wandb_callback]
+    if use_wandb:
+        wandb_callback = WandbCallback(save_model=False, monitor='val_loss', mode='min')
+        callbacks_list.append(wandb_callback)
 
     # Train
     print(f"\n[Training] Starting training for {epochs} epochs...")
@@ -87,19 +82,34 @@ def train_model(epochs=20, batch_size=32):
         train_gen,
         epochs=epochs,
         validation_data=val_gen,
-        class_weight=class_weights,
+        class_weight=class_weight_dict,
         callbacks=callbacks_list,
-        varbose=1
+        verbose=1 
     )
 
-    wandb.finish()
+    if use_wandb:
+        wandb.finish()
+    
     print("✅ Phase 1 Complete. Saved to models/best_resnet_model.h5")
-
+    return history
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
+    parser.add_argument("--batch_size", type=int, default=DEFAULT_BATCH_SIZE)
+    parser.add_argument("--wandb", action='store_true', help="Enable WandB logging")
+    
     args = parser.parse_args()
-    wandb.init(project="pneumonia-detection", config=vars(args))
-    train_model(epochs=args.epochs, batch_size=args.batch_size)
+    if args.wandb:
+        wandb.init(
+            project="pneumonia-detection-phase2",
+            config={
+                "learning_rate": LEARNING_RATE,
+                "epochs": args.epochs,
+                "batch_size": args.batch_size,
+                "architecture": "ResNet50_Frozen"
+            }
+        )
+
+    train_model(epochs=args.epochs, batch_size=args.batch_size, use_wandb=args.wandb)
+
