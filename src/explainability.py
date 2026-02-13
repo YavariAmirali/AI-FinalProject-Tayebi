@@ -3,7 +3,7 @@ import tensorflow as tf
 import cv2
 import os
 import pydicom
-
+from utils import crop_center_10_percent
 
 def make_gradcam_heatmap(img_array, model, pred_index=None):
     # Find ResNet base
@@ -60,15 +60,7 @@ def load_and_preprocess_image(img_path):
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # 2. CRITICAL: 10% Crop (Consistency with Training)
-    h, w = img.shape[:2]
-    crop_fraction = 0.10
-    start_y = int(h * crop_fraction)
-    end_y = int(h * (1 - crop_fraction))
-    start_x = int(w * crop_fraction)
-    end_x = int(w * (1 - crop_fraction))
-    img = img[start_y:end_y, start_x:end_x]
-
+    img = crop_center_10_percent(img)
     return img
 
 

@@ -4,7 +4,7 @@ import albumentations as A
 import cv2
 import os
 from tensorflow.keras.applications.resnet50 import preprocess_input
-
+from utils import crop_center_10_percent
 
 class MedicalDataGenerator(tf.keras.utils.Sequence):
     def __init__(
@@ -82,15 +82,7 @@ class MedicalDataGenerator(tf.keras.utils.Sequence):
 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-            h, w = img.shape[:2]
-            crop_fraction = 0.10
-
-            start_y = int(h * crop_fraction)
-            end_y = int(h * (1 - crop_fraction))
-            start_x = int(w * crop_fraction)
-            end_x = int(w * (1 - crop_fraction))
-
-            img = img[start_y:end_y, start_x:end_x]
+            img = crop_center_10_percent(img)
 
             if self.augment:
                 img = self.augmentation(image=img)["image"]

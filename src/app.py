@@ -6,8 +6,7 @@ from PIL import Image
 import os
 import pydicom
 from tensorflow.keras.applications.resnet50 import preprocess_input
-
-# --- IMPORT FROM YOUR MODULE ---
+from utils import crop_center_10_percent
 from explainability import make_gradcam_heatmap
 
 # --------------------------------------------------------------------------
@@ -31,15 +30,7 @@ def preprocess_image(img_array):
     if img_array.shape[-1] == 4:  # Drop Alpha channel if PNG
         img_array = img_array[..., :3]
 
-    # 1. CRITICAL: 10% Crop (Consistency with Training & Explainability)
-    h, w = img_array.shape[:2]
-    crop_fraction = 0.10
-    start_y = int(h * crop_fraction)
-    end_y = int(h * (1 - crop_fraction))
-    start_x = int(w * crop_fraction)
-    end_x = int(w * (1 - crop_fraction))
-
-    img_cropped = img_array[start_y:end_y, start_x:end_x]
+    img_cropped = crop_center_10_percent(img_array)
 
     # 2. Resize to 224x224 (ResNet Standard)
     img_resized = cv2.resize(img_cropped, (224, 224))
@@ -102,7 +93,7 @@ st.sidebar.title("Settings")
 uploaded_file = st.sidebar.file_uploader("Upload X-Ray (JPG/PNG/DICOM)", type=["jpg", "png", "jpeg", "dcm"])
 
 # --- SLIDER ---
-threshold = st.sidebar.slider("Confidence Threshold", 0.0, 0.99, 0.50)
+threshold = st.sidebar.slider("Confidence Threshold", 0.0, 0.99, 0.99)
 
 st.title("🫁 Intelligent Pneumonia Detection System")
 
