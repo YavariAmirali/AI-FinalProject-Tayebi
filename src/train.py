@@ -14,6 +14,8 @@ from model_builder import build_resnet50_model
 
 import wandb
 from wandb.integration.keras import WandbCallback
+import argparse
+
 # --- CONFIGURATION ---
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
@@ -27,7 +29,7 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
 
 
-def train_model():
+def train_model(epochs=20, batch_size=32):
     wandb.init(
         project="pneumonia-detection-phase2",
         config={
@@ -62,7 +64,7 @@ def train_model():
         metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
     )
 
-    # 1. Model Checkpoint -> SAVING AS best_resnet_model.h5
+    # Model Checkpoint -> SAVING AS best_resnet_model.h5
     checkpoint = ModelCheckpoint(
         os.path.join(MODELS_DIR, 'best_resnet_model.h5'),
         monitor='val_loss',
@@ -80,14 +82,14 @@ def train_model():
     callbacks_list = [checkpoint, early_stopping, reduce_lr, tensorboard_callback, csv_logger, wandb_callback]
 
     # Train
-    print("🔥 Starting Phase 1 Training...")
+    print(f"\n[Training] Starting training for {epochs} epochs...")
     history = model.fit(
         train_gen,
-        epochs=EPOCHS,
+        epochs=epochs,
         validation_data=val_gen,
-        class_weight=class_weight_dict,
-        callbacks=callbacks_list,
-        verbose=1
+        class_weight=class_weights,
+        callbacks=callbacks,
+        varbose = 1
     )
 
     wandb.finish()
@@ -95,4 +97,9 @@ def train_model():
 
 
 if __name__ == "__main__":
-    train_model()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--batch_size", type=int, default=32)
+    args = parser.parse_args()
+    wandb.init(project="pneumonia-detection", config=vars(args))
+    train_model(epochs=args.epochs, batch_size=args.batch_size)
