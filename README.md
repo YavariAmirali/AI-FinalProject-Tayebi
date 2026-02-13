@@ -73,8 +73,9 @@ AI-FinalProject/
 ├── requirements.txt # لیست دقیق وابستگی‌ها
 └── README.md # مستندات پروژه
 
-</div>
 ```
+</div>
+
 ---
 
 ## 🚀 راهنمای نصب و اجرا (Installation & Usage)
@@ -86,7 +87,7 @@ AI-FinalProject/
 <div dir="ltr">
 
    ```bash
-   docker build -t pneumonia-app .
+   docker build -t pneumonia-app 
    ```
 </div>
 
