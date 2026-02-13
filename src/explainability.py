@@ -6,9 +6,6 @@ import pydicom
 
 
 def make_gradcam_heatmap(img_array, model, pred_index=None):
-    """
-    Generates Grad-CAM heatmap using the last convolutional layer.
-    """
     # Find ResNet base
     base_model = None
     for layer in model.layers:
@@ -49,10 +46,7 @@ def make_gradcam_heatmap(img_array, model, pred_index=None):
 
 
 def load_and_preprocess_image(img_path):
-    """
-    Smart loader: Handles both DICOM and Standard Images.
-    CRITICAL: Applies the same 10% crop as training data.
-    """
+
     # 1. Load Image
     if img_path.lower().endswith('.dcm'):
         ds = pydicom.dcmread(img_path)

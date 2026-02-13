@@ -50,7 +50,6 @@ def find_optimal_threshold(y_true_calib, probs_calib, target_recall=0.95):
     thresholds = np.arange(0.50, 1.00, 0.01)
     for thresh in thresholds:
         metrics = calculate_metrics(y_true_calib, probs_calib, thresh)
-        # If we meet the recall requirement AND it improves our specificity, save it!
         if metrics["Recall"] >= target_recall and metrics["Specificity"] >= best_spec:
             best_spec = metrics["Specificity"]
             best_thresh = thresh
@@ -104,7 +103,7 @@ def evaluate_model():
     filepaths_test = filepaths_all[idx_test]
 
     # Find the Optimal Threshold ONLY on the 20% Calibration Data
-    optimal_thresh = find_optimal_threshold(y_true_calib, probs_fine_calib, target_recall=0.96)
+    optimal_thresh = find_optimal_threshold(y_true_calib, probs_fine_calib, target_recall=0.95)
 
     # Evaluate BOTH models on the 80% Unseen Test Data using the optimal threshold
     print(

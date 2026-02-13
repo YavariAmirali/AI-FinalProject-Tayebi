@@ -10,7 +10,6 @@ from tensorflow.keras.callbacks import (
 )
 from sklearn.utils import class_weight
 from data_loader import get_data_loaders, DATA_DIR
-# Import the builder you already have to be consistent
 from model_builder import build_resnet50_model
 
 import wandb
@@ -53,7 +52,7 @@ def train_model():
     class_weight_dict = dict(enumerate(class_weights))
     print(f" Class Weights: {class_weight_dict}")
 
-    # Build Model using your model_builder.py
+    # Build Model using model_builder.py
     print("🧠 Building Frozen Model...")
     model = build_resnet50_model(input_shape=IMG_SIZE + (3,))
 
@@ -63,7 +62,7 @@ def train_model():
         metrics=['accuracy', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.AUC(name='auc')]
     )
 
-    # 1. Model Checkpoint -> SAVING AS best_resnet_model.h5 (CRITICAL FIX)
+    # 1. Model Checkpoint -> SAVING AS best_resnet_model.h5
     checkpoint = ModelCheckpoint(
         os.path.join(MODELS_DIR, 'best_resnet_model.h5'),
         monitor='val_loss',
