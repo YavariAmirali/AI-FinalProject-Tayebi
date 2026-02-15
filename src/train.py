@@ -28,7 +28,6 @@ LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
 
-
 def train_model(epochs, batch_size, use_wandb):
     # Loading Data
     print("🚀 Loading Data...")
@@ -40,7 +39,7 @@ def train_model(epochs, batch_size, use_wandb):
         train_labels = train_gen.labels
     except AttributeError:
         train_labels = train_gen.get_labels()
-
+        
     class_weights_array = class_weight.compute_class_weight(
         class_weight='balanced',
         classes=np.unique(train_labels),
@@ -70,7 +69,7 @@ def train_model(epochs, batch_size, use_wandb):
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=1e-6)
     csv_logger = CSVLogger(os.path.join(LOGS_DIR, 'training_log.csv'), append=True)
-
+    
     callbacks_list = [checkpoint, early_stopping, reduce_lr, csv_logger]
 
     if use_wandb:
@@ -85,23 +84,21 @@ def train_model(epochs, batch_size, use_wandb):
         validation_data=val_gen,
         class_weight=class_weight_dict,
         callbacks=callbacks_list,
-        verbose=1
+        verbose=1 
     )
 
     if use_wandb:
         wandb.finish()
-
+    
     print("✅ Phase 1 Complete. Saved to models/best_resnet_model.h5")
     return history
 
-
 if __name__ == "__main__":
-    main()
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
     parser.add_argument("--batch_size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--wandb", action='store_true', help="Enable WandB logging")
-
+    
     args = parser.parse_args()
     if args.wandb:
         wandb.init(
