@@ -192,6 +192,7 @@ streamlit run src/app.py
 * **تکنیک Grad-CAM:** [Visual Explanations from Deep Networks](https://arxiv.org/abs/1610.02391)
 * **کتابخانه Albumentations:** [Albumentations Documentation](https://albumentations.ai/)
 </div>
+
 ---
 
 <div align="center">
